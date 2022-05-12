@@ -1,4 +1,4 @@
-#include <windows.h>
+ï»¿#include <windows.h>
 #include <tchar.h>
 #include <fcntl.h>
 #include <io.h>
@@ -10,82 +10,112 @@
 #define MAX 256
 
 
+DWORD WINAPI suspendeAgua(LPVOID param) {
+	TDados** dados = (TDados**)param;
+
+	_tprintf(TEXT("Thread para suspender a Ã¡gua lanÃ§ada...\n"));
+	_tprintf(TEXT("Vai suspender a Ã¡gua por %d segundos\n"), (*dados)->jogo.agua);
+	WaitForSingleObject(( * dados)->mutex_agua, INFINITE);
+	Sleep((*dados)->jogo.agua * 1000);
+	ReleaseMutex((*dados)->mutex_agua);
+	_tprintf(TEXT("Thread para suspender a Ã¡gua terminada...\n"));
+}
+
 /* Thread para receber comandos do processo Monitor 
-	Através do Modelo Produtor - Consumidor */
+	AtravÃ©s do Modelo Produtor - Consumidor */
 
 DWORD WINAPI recebeComandos(LPVOID param) {
 	TDados* dados = (TDados*)param;
 	TCHAR cmd[250];
-	//Jogo jogo;
-	do {
-		_fgetts(cmd, 250, stdin);
-		/*
+
+	do {		
 		Jogo jogo;
-		// Esperar pelo semáforo dos itens
+		//_tprintf(TEXT("HERE\n"));
+		// Esperar pelo semÃ¡foro dos itens
 		WaitForSingleObject(dados->sem_itens, INFINITE);
+		// Esperar pelo semÃ¡foro do consumidor
+		WaitForSingleObject(dados->sem_mutex_c, INFINITE);
 		// Copiar para o processo o item a consumir
 		CopyMemory(&jogo, &dados->ptr_modelo->jogosBuffer[dados->ptr_modelo->ent], sizeof(Jogo));
-		// Incrementar posição de leitura
+		// Incrementar posiÃ§Ã£o de leitura
 		dados->ptr_modelo->ent = (dados->ptr_modelo->ent + 1) % BUFFER;
-		*/
+
 		/* Processar os pedidos */
-		/*
+	
 		// Suspender a agua
 		if (jogo.agua != 0) {
 			dados->jogo.agua = jogo.agua;
 			_tprintf(TEXT("A agua foi suspensa por %d segundos"), dados->jogo.agua);
-			WaitForSingleObject(dados->mutex_agua, INFINITE);
+			/*WaitForSingleObject(dados->mutex_agua, INFINITE);
 			Sleep(dados->jogo.agua * 1000);
 			dados->jogo.agua = 0;
-			ReleaseMutex(dados->mutex_agua);
+			ReleaseMutex(dados->mutex_agua);*/
+			HANDLE thread = CreateThread(NULL, 0, suspendeAgua, &dados, 0, NULL);
 		}
 		
 		// Ativar aleatorio
 		if (dados->jogo.aleatorio == true && jogo.aleatorio == false) {
-			_tprintf(TEXT("Modo aleatório desativado.\n"));
+			_tprintf(TEXT("Modo aleatÃ³rio desativado.\n"));
 		}
 		if (dados->jogo.aleatorio == false && jogo.aleatorio == true) {
-			_tprintf(TEXT("Modo aleatório ativado.\n"));
+			_tprintf(TEXT("Modo aleatÃ³rio ativado.\n"));
 		}
 
 		// Inserir bloco
 		if (jogo.insereBarreira == true) {
-			_tprintf(TEXT("Foi inserida uma barreira na posição %d %d"), jogo.barreira.x, jogo.barreira.y);
+			_tprintf(TEXT("Foi inserida uma barreira na posiÃ§Ã£o %d %d"), jogo.barreira.x, jogo.barreira.y);
 			dados->ptr_memoria->mapas[0].board[jogo.barreira.x][jogo.barreira.y] = '|';
+			printMapa(dados->ptr_memoria->mapas[0]);
 		}
 		//if (jogo.atualizar == true) {
 		//	printMapa(dados->ptr_memoria->mapas[0]);
 		//}
-		// Assinalar semáforo dos vazios
+
+		// Assinalar semÃ¡foro do consumidor
+		ReleaseSemaphore(dados->sem_mutex_c, 1, NULL);
+		// Assinalar semÃ¡foro dos vazios
 		ReleaseSemaphore(dados->sem_vazios, 1, NULL);
-		*/
+		
 	} while (!dados->ptr_memoria->terminar);
 }
 
 DWORD WINAPI moveAgua(LPVOID param) {
 	TDados* dados = (TDados*)param;
-	_tprintf(TEXT("Thread para mover a água lançada."));
+	_tprintf(TEXT("Thread para mover a Ã¡gua lanÃ§ada.Ë©"));
 	Sleep(dados->tempo * 1000);
 	int i = 0;
-	DWORD result;
 	dados->jogo.atualizar = true;
+	Agua agua;
+	agua.mapa = dados->ptr_memoria->mapas[0];
+	agua.prox_lin = 0;
+	agua.prox_col = 0;
 	do {
-		// Esperar pelo mutex que pode estar a suspender a água
-		result = WaitForSingleObject(dados->mutex_agua, INFINITE);
-		// Faz a água avançar
-		dados->ptr_memoria->mapas[0].board[i][i] = 'W';
-		i++;
+		//// Esperar pelo mutex que pode estar a suspender a Ã¡gua
+		WaitForSingleObject(dados->mutex_agua, INFINITE);
+		//// Faz a Ã¡gua avanÃ§ar
+		/*dados->ptr_memoria->mapas[0].board[i][i] = 'W';
+		i++;*/
+		if (agua.prox_lin >= dados->ptr_memoria->mapas[0].lin) {
+			break;
+		}
+		if (agua.prox_col >= dados->ptr_memoria->mapas[0].col) {
+			break;
+		}
+		agua = moverAgua(agua, agua.prox_lin, agua.prox_col);
+		dados->ptr_memoria->mapas[0] = agua.mapa;
 		_tprintf(TEXT("Agua a mexer...\n"));
-		// Atualizar o monitor...
-		//SetEvent(dados->event_atualiza);
-		WaitForSingleObject(dados->sem_vazios, INFINITE);
-		CopyMemory(&dados->ptr_modelo->jogosBuffer[dados->ptr_modelo->sai], &dados->jogo, sizeof(Jogo));
-		dados->ptr_modelo->sai = (dados->ptr_modelo->sai + 1) % BUFFER;
-		//dados->jogo.atualizar = false;
-		ReleaseSemaphore(dados->sem_itens, 1, NULL);
-		Sleep(2000);
-		// Libertar mutex
-		ReleaseMutex(dados->mutex_agua);
+		// //Atualizar o monitor...
+		SetEvent(dados->event_atualiza);
+		//WaitForSingleObject(dados->sem_vazios, INFINITE);
+		//WaitForSingleObject(dados->sem_mutex_p, INFINITE);
+		//CopyMemory(&dados->ptr_modelo->jogosBuffer[dados->ptr_modelo->sai], &dados->jogo, sizeof(Jogo));
+		//dados->ptr_modelo->sai = (dados->ptr_modelo->sai + 1) % BUFFER;
+		////dados->jogo.atualizar = false;
+		//ReleaseSemaphore(dados->sem_mutex_p, 1, NULL);
+		//ReleaseSemaphore(dados->sem_itens, 1, NULL);
+		Sleep(1000);
+		////// Libertar mutex
+		//ReleaseMutex(dados->mutex_agua);
 	} while (i < dados->col);
 	dados->ptr_memoria->terminar = true;
 }
@@ -93,13 +123,31 @@ DWORD WINAPI moveAgua(LPVOID param) {
 DWORD WINAPI atualizaMonitor(LPVOID param) {
 	TDados* dados = (TDados*)param;
 	do {
-		WaitForSingleObject(dados->event_atualiza, INFINITE);
-		WaitForSingleObject(dados->sem_vazios, INFINITE);
-		dados->jogo.atualizar = true;
-		CopyMemory(&dados->ptr_modelo->jogosBuffer[dados->ptr_modelo->sai], &dados->jogo, sizeof(Jogo));
-		dados->ptr_modelo->sai = (dados->ptr_modelo->sai + 1) % BUFFER;
-		dados->jogo.atualizar = false;
-		ReleaseSemaphore(dados->sem_itens, 1, NULL);
+		//WaitForSingleObject(dados->mutex_agua, INFINITE);
+		// Faz a Ã¡gua avanÃ§ar
+		//dados->ptr_memoria->mapas[0].board[i][i] = 'W';
+		//i++;
+		//_tprintf(TEXT("Agua a mexer...\n"));
+		// Atualizar o monitor...
+		//SetEvent(dados->event_atualiza);
+		//WaitForSingleObject(dados->event_atualiza, INFINITE);
+		//WaitForSingleObject(dados->sem_vazios, INFINITE);
+		//WaitForSingleObject(dados->sem_mutex_p, INFINITE);
+		//CopyMemory(&dados->ptr_modelo->jogosBuffer[dados->ptr_modelo->sai], &dados->jogo, sizeof(Jogo));
+		//dados->ptr_modelo->sai = (dados->ptr_modelo->sai + 1) % BUFFER;
+		////dados->jogo.atualizar = false;
+		//ReleaseSemaphore(dados->sem_mutex_p, 1, NULL);
+		//ReleaseSemaphore(dados->sem_itens, 1, NULL);
+		//Sleep(2000);
+		//// Libertar mutex
+		//ReleaseMutex(dados->mutex_agua);
+		//WaitForSingleObject(dados->event_atualiza, INFINITE);
+		//WaitForSingleObject(dados->sem_vazios, INFINITE);
+		//dados->jogo.atualizar = true;
+		//CopyMemory(&dados->ptr_modelo->jogosBuffer[dados->ptr_modelo->sai], &dados->jogo, sizeof(Jogo));
+		//dados->ptr_modelo->sai = (dados->ptr_modelo->sai + 1) % BUFFER;
+		//dados->jogo.atualizar = false;
+		//ReleaseSemaphore(dados->sem_itens, 1, NULL);
 		//_tprintf(TEXT("TEMPO: %d, VERTICAL: %d, HORIZONTAL: %d\n"), tmp, lin, col);
 		//_fgetts(cmd, 250, stdin);
 		//Sleep(3000);
@@ -135,17 +183,16 @@ int _tmain(int argc, LPTSTR argv[]) {
 	}
 #endif
 
-	/* Semaforo de controlo da execução. Apenas permite que um programa servidor corra em simultâneo. */
+	/* Semaforo de controlo da execuÃ§Ã£o. Apenas permite que um programa servidor corra em simultÃ¢neo. */
 	semaforo_execucao = CreateSemaphore(NULL, 0, 1, SEMAFORO_EXECUCAO);
 	result = GetLastError();
 	if (result == ERROR_ALREADY_EXISTS) {
-		_tprintf(TEXT("Já existe um servidor em execução.\nTermine-o para iniciar um novo"));
+		_tprintf(TEXT("JÃ¡ existe um servidor em execuÃ§Ã£o.\nTermine-o para iniciar um novo"));
 		return -1;
 	}
 
-	/* Obtem as dimensões do mapa pela linha de comandos. Se for mais do que 20 fica com 20 por defeito. */
+	/* Obtem as dimensÃµes do mapa pela linha de comandos. Se for mais do que 20 fica com 20 por defeito. */
 	if (argc == 4) {
-		_tprintf(TEXT("HERE"));
 		dados.tempo = _tstoi(argv[1]);
 		dados.lin = _tstoi(argv[2]);
 		dados.col = _tstoi(argv[3]);
@@ -161,7 +208,7 @@ int _tmain(int argc, LPTSTR argv[]) {
 			&chave,
 			&result
 		) != ERROR_SUCCESS) {
-			_tprintf(TEXT("Chave %s não foi criada nem aberta!\n"), chave_nome);
+			_tprintf(TEXT("Chave %s nÃ£o foi criada nem aberta!\n"), chave_nome);
 		}
 		else {
 			TCHAR tempo[10] = TEXT("TEMPO");
@@ -179,7 +226,7 @@ int _tmain(int argc, LPTSTR argv[]) {
 
 		/* Se for mais que 20 fica a 20*/
 		if (dados.lin > 20) {
-			_tprintf(TEXT("As dimensões não podem exceder 20. Vai ser definido o limite máximo.\n"));
+			_tprintf(TEXT("As dimensÃµes nÃ£o podem exceder 20. Vai ser definido o limite mÃ¡ximo.\n"));
 			dados.lin = 20;
 		}
 		/* Gravar as dimensoes verticais no Registry */
@@ -194,7 +241,7 @@ int _tmain(int argc, LPTSTR argv[]) {
 			&chave,
 			&result
 		) != ERROR_SUCCESS) {
-			_tprintf(TEXT("Chave %s não foi criada nem aberta!\n"), chave_nome);
+			_tprintf(TEXT("Chave %s nÃ£o foi criada nem aberta!\n"), chave_nome);
 		}
 		else {
 			TCHAR vertical[10] = TEXT("VERTICAL");
@@ -212,7 +259,7 @@ int _tmain(int argc, LPTSTR argv[]) {
 
 		/* Se for mais que 20 fica a 20 */
 		if (dados.col > 20) {
-			_tprintf(TEXT("As dimensões não podem exceder 20. Vai ser definido o limite máximo.\n"));
+			_tprintf(TEXT("As dimensÃµes nÃ£o podem exceder 20. Vai ser definido o limite mÃ¡ximo.\n"));
 			dados.col = 20;
 		}
 		/* Gravar as dimensoes horizontais no Registry */
@@ -227,7 +274,7 @@ int _tmain(int argc, LPTSTR argv[]) {
 			&chave,
 			&result
 		) != ERROR_SUCCESS) {
-			_tprintf(TEXT("Chave %s não foi criada nem aberta!\n"), chave_nome);
+			_tprintf(TEXT("Chave %s nÃ£o foi criada nem aberta!\n"), chave_nome);
 		}
 		else {
 			TCHAR horizontal[20] = TEXT("HORIZONTAL");
@@ -244,22 +291,22 @@ int _tmain(int argc, LPTSTR argv[]) {
 		}
 	}
 
-	/* Obter as dimensões pelo Registry */
+	/* Obter as dimensÃµes pelo Registry */
 	else {
 		RegOpenKeyEx(HKEY_CURRENT_USER, chave_nome, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, &chave);
 		result = RegQueryValueEx(chave, TEXT("TEMPO"), NULL, NULL, (LPBYTE)&dados.tempo, (LPDWORD)&cbdata);
 		if (result != ERROR_SUCCESS) {
-			_tprintf(TEXT("\nNão foi possível ler do registo o tempo que demora a água a correr.\nVai ser definido como 30 segundos.\n"));
+			_tprintf(TEXT("\nNÃ£o foi possÃ­vel ler do registo o tempo que demora a Ã¡gua a correr.\nVai ser definido como 30 segundos.\n"));
 			dados.tempo = 30;
 		}
 		result = RegQueryValueEx(chave, TEXT("VERTICAL"), NULL, NULL, (LPBYTE)&dados.lin, (LPDWORD)&cbdata);
 		if (result != ERROR_SUCCESS) {
-			_tprintf(TEXT("\nNão foi possível ler do registo o número de linhas do mapa\nVai ser definido como 20.\n"));
+			_tprintf(TEXT("\nNÃ£o foi possÃ­vel ler do registo o nÃºmero de linhas do mapa\nVai ser definido como 20.\n"));
 			dados.lin = 20;
 		}
 		result = RegQueryValueEx(chave, TEXT("HORIZONTAL"), NULL, NULL, (LPBYTE)&dados.col, (LPDWORD)&cbdata);
 		if (result != ERROR_SUCCESS) {
-			_tprintf(TEXT("\nNão foi possível ler do registo o número de colunas do mapa\nVai ser definido como 20.\n"));
+			_tprintf(TEXT("\nNÃ£o foi possÃ­vel ler do registo o nÃºmero de colunas do mapa\nVai ser definido como 20.\n"));
 			dados.col = 20;
 		}
 	}
@@ -267,7 +314,14 @@ int _tmain(int argc, LPTSTR argv[]) {
 	Mapa mapa;
 	mapa.lin = dados.lin;
 	mapa.col = dados.col;
-	mapa = criaMapa(mapa);
+	/* CriaÃ§Ã£o do mapa com posiÃ§Ãµes random*/
+
+	//mapa = criaMapa(mapa); 
+	//printMapa(mapa);
+
+	/* CriaÃ§Ã£o do mapa com um caminho definido */
+
+	mapa = criaMapaDebug(mapa);
 	printMapa(mapa);
 
 	/* Iniciar memoria partilhada */
@@ -281,25 +335,30 @@ int _tmain(int argc, LPTSTR argv[]) {
 
 	/* Inicializar a estrutura de dados */
 	Jogo jogo;
+	Barreira b;
+	b.x = 0;
+	b.y = 0;
 	jogo.agua = 0;
 	jogo.aleatorio = false;
 	jogo.atualizar = false;
 	jogo.insereBarreira = false;
+	jogo.barreira = b;
 	dados.ptr_memoria->mapas[0] = mapa;
 	dados.ptr_memoria->terminar = false;
 	dados.jogo = jogo;
 	
-	/* Cria semáforos para o modelo produtor consumidor */
+	/* Cria semÃ¡foros para o modelo produtor consumidor */
 	dados.sem_itens = CreateSemaphore(NULL, 0, BUFFER, SEMAFORO_ITENS);
 	dados.sem_vazios = CreateSemaphore(NULL, BUFFER, BUFFER, SEMAFORO_VAZIOS);
 	dados.sem_mutex_p = CreateSemaphore(NULL, 1, 1, SEM_MUTEX_P);
 	dados.sem_mutex_c = CreateSemaphore(NULL, 1, 1, SEM_MUTEX_C);
+
 	TCHAR cmd[250];
 	TCHAR c = 'b';
 	int i = 0;
 	//Jogo jogo;
 
-	/* Mutex para controlar a suspensão da água*/
+	/* Mutex para controlar a suspensÃ£o da Ã¡gua*/
 	dados.mutex_agua = CreateMutex(NULL, FALSE, MUTEX_AGUA);
 	dados.event_atualiza = CreateEvent(NULL, FALSE, FALSE, EVENT_ATUALIZAR);
 
@@ -307,13 +366,19 @@ int _tmain(int argc, LPTSTR argv[]) {
 	/* Thread para receber comandos do Monitor */
 	hThread[0] = CreateThread(NULL, 0, recebeComandos, &dados, 0, NULL);
 
-	/* Thread para movimentar a água */
+	/* Thread para movimentar a Ã¡gua */
 	hThread[1] = CreateThread(NULL, 0, moveAgua, &dados, 0, NULL);
 	
-	/* Thread para enviar atualizações ao Monitor */
+	/* Thread para enviar atualizaÃ§Ãµes ao Monitor */
 	hThread[2] = CreateThread(NULL, 0, atualizaMonitor, &dados, 0, NULL);
+
 	WaitForMultipleObjects(3, hThread, FALSE, INFINITE);
 
+	dados.ptr_memoria->terminar = true;
+	UnmapViewOfFile(dados.ptr_memoria);
+	UnmapViewOfFile(dados.ptr_modelo);
+
+	return 0;
 
 	//do {
 	//	_fgetts(cmd, 250, stdin);

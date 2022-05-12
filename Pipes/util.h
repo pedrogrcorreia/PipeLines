@@ -14,6 +14,7 @@
 #define EVENT_ATUALIZAR TEXT("EVENT_ATUALIZAR")
 
 #define BUFFER 100
+#define BUFFER_CHAR 100
 
 typedef struct {
 	int x;
@@ -27,6 +28,8 @@ typedef struct {
 	bool insereBarreira;
 	Barreira barreira;
 } Jogo;
+
+
 
 typedef struct {
 	int ent;
