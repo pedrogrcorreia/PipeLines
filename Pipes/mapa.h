@@ -1,7 +1,7 @@
 #pragma once
 #define MAX_LENGTH 20
 
-
+// Estrutura que representa o mapa do jogo
 typedef struct {
 	int jogador;
 	int lin;
@@ -9,16 +9,21 @@ typedef struct {
 	TCHAR board[MAX_LENGTH][MAX_LENGTH];
 } Mapa;
 
+// Estrutura auxiliar para calcular o movimento da água
 typedef struct {
 	int prox_lin;
 	int prox_col;
 	Mapa mapa;
 } Agua;
 
+// Criação de um mapa com posições iniciais random
 Mapa criaMapa(Mapa mapa);
 
+// Criação de um mapa de Debug com posições e caminho definidos
 Mapa criaMapaDebug(Mapa mapa);
 
+// Imprimir um mapa
 void printMapa(Mapa mapa);
 
+// Movimentar a água pelos tubos
 Agua moverAgua(Agua agua, int lin, int col);

@@ -18,10 +18,10 @@ Mapa criaMapa(Mapa mapa) {
 	int fin = (rand() % (mapa.lin - 0)) + 0;
 	//_tprintf(TEXT("%d %d\n"), ini, fin);
 
-	///* Coluna 0 e Linha random*/
+	/* Coluna 0 e Linha random*/
 	mapa.board[ini][0] = 'i';
 
-	///* Ultima coluna e Linha random */
+	/* Ultima coluna e Linha random */
 
 	/* TODO DIAGONALMENTE OPOSTOS */
 	mapa.board[fin][mapa.col - 1] = 'f';
@@ -65,13 +65,6 @@ Agua moverAgua(Agua agua, int lin, int col) {
 	//agua.mapa.board[lin][col] = 'w';
 	_tprintf(TEXT("%d %d\n"), lin, col);
 
-	//_tprintf(TEXT("%c"), agua.mapa.board[lin][col]);
-	//_tprintf(TEXT("%d\n"), _tcsicmp(agua.mapa.board[lin][col], TEXT('-')));
-	//agua.prox_lin = lin;
-	//agua.prox_col = col + 1;
-
-	//_tprintf(TEXT("%c"), agua.mapa.board[lin][col] == '━');
-
 	// Peça ━ Verifica à frente
 	if (agua.mapa.board[lin][col] == TEXT('━')) {
 		agua.mapa.board[lin][col] = TEXT('w');
@@ -110,18 +103,4 @@ Agua moverAgua(Agua agua, int lin, int col) {
 		}
 	}
 	return agua;
-	//if (_tcsicmp(TEXT('━'), TEXT('━')) == 0) {
-	//	_tprintf(TEXT("CERTO"));
-	//	agua.mapa.board[lin][col] = 'w';
-	//	if (_tcsicmp(TEXT('━'), TEXT('□')) == 0) {
-	//		// Perdeu
-	//		_tprintf(TEXT("Perdeu"));
-	//	}
-	//	else {
-	//		agua.prox_lin = lin;
-	//		agua.prox_col = col + 1;
-	//		return agua;
-	//	}
-	//}
-	//return agua;
 }

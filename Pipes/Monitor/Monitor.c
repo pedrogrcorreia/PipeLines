@@ -83,11 +83,6 @@ DWORD WINAPI enviaComandos(LPVOID param) {
 				break;
 		}
 
-
-		//if (_tcsicmp(cmd, TEXT("stop\n")) == 0) {
-		//	jogo.agua = 10;
-		//}
-
 		// Esperar pelo semáforo dos vazios
 		WaitForSingleObject(dados->sem_vazios, INFINITE);
 		// Esperar pelo semáforo do produtor
@@ -105,30 +100,19 @@ DWORD WINAPI enviaComandos(LPVOID param) {
 	} while (_tcsicmp(cmd, TEXT("fim\n")) != 0);
 }
 
-DWORD WINAPI recebeComandos(LPVOID param) {
+
+/* Thread que fica a aguardar o evento para atualizar o mapa */
+
+DWORD WINAPI atualizar(LPVOID param) {
 	TDados* dados = (TDados*)param;
 	do {
-		//// Esperar semáforo dos itens
-		//WaitForSingleObject(dados->sem_itens, INFINITE);
-		//WaitForSingleObject(dados->sem_mutex_c, INFINITE);
-		//// Copiar para a memória do processo o item consumido
-		//CopyMemory(&dados->jogo, &dados->ptr_modelo->jogosBuffer[dados->ptr_modelo->ent], sizeof(Jogo));
-		//// Incrementa a posição de leitura
-		//dados->ptr_modelo->ent = (dados->ptr_modelo->ent + 1) % BUFFER;
-		////_tprintf(TEXT("%d\n"), dados->jogo.atualizar);
-		///* Processar o que recebeu*/
-		//if (dados->jogo.atualizar == true) {
-		//	_tprintf(TEXT("A água mexeu-se...\n"));
-		//	printMapa(dados->ptr_memoria->mapas[0]);
-		//	_tprintf(TEXT("\n"));
-		//}
-		//ReleaseSemaphore(dados->sem_mutex_c, 1, NULL);
-		//ReleaseSemaphore(dados->sem_vazios, 1, NULL);
 		WaitForSingleObject(dados->event_atualiza, INFINITE);
 		printMapa(dados->ptr_memoria->mapas[0]);
 		_tprintf(TEXT("\n"));
 	} while (!dados->ptr_memoria->terminar);
 }
+
+/* Thread para concluir o processo caso o servidor termine */
 
 DWORD WINAPI terminar(LPVOID param) {
 	TDados* dados = (TDados*)param;
@@ -200,28 +184,16 @@ int _tmain(int argc, LPTSTR argv[]) {
 	/* Lança thread para o utilizador enviar comandos para o servidor */
 	hThread[0] = CreateThread(NULL, 0, enviaComandos, &dados, 0, NULL);
 
-	hThread[1] = CreateThread(NULL, 0, recebeComandos, &dados, 0, NULL);
+	/* Lança thread para atualizar o mapa */
+	hThread[1] = CreateThread(NULL, 0, atualizar, &dados, 0, NULL);
 
+	/* Lança thread para terminar o processo */
 	hThread[2] = CreateThread(NULL, 0, terminar, &dados, 0, NULL);
 
+	/* Esperar que apenas uma das threads termine para terminar o processo */
 	WaitForMultipleObjects(3, hThread, FALSE, INFINITE);
 
-	/* Thread principal fica responsável por consumir os itens do Modelo */
-	//do {
-	//	// Esperar semáforo dos itens
-	//	WaitForSingleObject(dados.sem_itens, INFINITE);
-	//	// Copiar para a memória do processo o item consumido
-	//	CopyMemory(&jogo, &dados.ptr_modelo->jogosBuffer[dados.ptr_modelo->ent], sizeof(Jogo));
-	//	// Incrementa a posição de leitura
-	//	dados.ptr_modelo->ent = (dados.ptr_modelo->ent + 1) % BUFFER;
-	//	_tprintf(TEXT("%d\n"), jogo.atualizar);
-	//	/* Processar o que recebeu*/
-	//	if (jogo.atualizar == true) {
-	//		_tprintf(TEXT("A água mexeu-se...\n"));
-	//		printMapa(dados.ptr_memoria->mapas[0]);
-	//		_tprintf(TEXT("\n"));
-	//	}
-	//	ReleaseSemaphore(dados.sem_vazios, 1, NULL);
-
-	//} while (!dados.ptr_memoria->terminar);
+	// Fechar o ficheiro de memória partilhada
+	UnmapViewOfFile(dados.ptr_memoria);
+	UnmapViewOfFile(dados.ptr_modelo);
 }

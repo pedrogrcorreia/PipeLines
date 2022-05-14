@@ -16,11 +16,13 @@
 #define BUFFER 100
 #define BUFFER_CHAR 100
 
+// Estrutura que representa uma barreira e a sua posição
 typedef struct {
 	int x;
 	int y;
 } Barreira;
 
+// Estrutura que representa o estado do jogo
 typedef struct { 
 	bool atualizar;
 	int agua;
@@ -29,14 +31,15 @@ typedef struct {
 	Barreira barreira;
 } Jogo;
 
-
-
+// Estrutura para utilizar no modelo produtor consumidor como
+// Memória partilhada
 typedef struct {
 	int ent;
 	int sai;
 	Jogo jogosBuffer[BUFFER];
 } Modelo;
 
+// Estrutura para colocar na memória partilhada
 typedef struct {
 	Mapa mapas[2];
 	bool terminar;
@@ -44,6 +47,7 @@ typedef struct {
 	int col;
 } Memoria;
 
+// Estrutura auxiliar para enviar os dados para as Threads
 typedef struct {
 	Memoria* ptr_memoria;
 	Modelo* ptr_modelo;
