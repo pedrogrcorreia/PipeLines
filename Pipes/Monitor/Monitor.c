@@ -86,13 +86,13 @@ DWORD WINAPI enviaComandos(LPVOID param) {
 		// Esperar pelo semáforo dos vazios
 		WaitForSingleObject(dados->sem_vazios, INFINITE);
 		// Esperar pelo semáforo do produtor
-		WaitForSingleObject(dados->sem_mutex_p, INFINITE);
+		WaitForSingleObject(dados->mutex_cp, INFINITE);
 		// Copiar para a memória do modelo o item a enviar
 		CopyMemory(&dados->ptr_modelo->jogosBuffer[dados->ptr_modelo->sai], &jogo, sizeof(Jogo));
 		// Decrementar a posição de escrita
 		dados->ptr_modelo->sai = (dados->ptr_modelo->sai + 1) % BUFFER;
 		// Assinalar o semáforo do produtor
-		ReleaseSemaphore(dados->sem_mutex_p, 1, NULL);
+		ReleaseSemaphore(dados->mutex_cp, 1, NULL);
 		// Assinalar o semáforo dos itens
 		ReleaseSemaphore(dados->sem_itens, 1, NULL);
 
@@ -168,8 +168,7 @@ int _tmain(int argc, LPTSTR argv[]) {
 
 	dados.sem_itens = CreateSemaphore(NULL, 0, BUFFER, SEMAFORO_ITENS);
 	dados.sem_vazios = CreateSemaphore(NULL, BUFFER, BUFFER, SEMAFORO_VAZIOS);
-	dados.sem_mutex_p = CreateSemaphore(NULL, 1, 1, SEM_MUTEX_P);
-	dados.sem_mutex_c = CreateSemaphore(NULL, 1, 1, SEM_MUTEX_C);
+	dados.mutex_cp = CreateSemaphore(NULL, 1, 1, MUTEX_CP);
 
 	dados.event_atualiza = CreateEvent(NULL, FALSE, FALSE, EVENT_ATUALIZAR);
 

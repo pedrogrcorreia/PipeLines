@@ -5,8 +5,7 @@
 #define SEMAFORO_EXECUCAO TEXT("SEMAFORO_EXECUCOES")
 #define SEMAFORO_ITENS TEXT("SEMAFORO_ITENS")
 #define SEMAFORO_VAZIOS TEXT("SEMAFORO_VAZIOS")
-#define SEM_MUTEX_P TEXT("SEM_MUTEX_P")
-#define SEM_MUTEX_C TEXT("SEM_MUTEX_C")
+#define MUTEX_CP TEXT("MUTEX_CP")
 #define MEMORIA TEXT("Memoria partilhada")
 #define MODELO TEXT("Modelo")
 
@@ -53,8 +52,7 @@ typedef struct {
 	Modelo* ptr_modelo;
 	HANDLE sem_itens;
 	HANDLE sem_vazios;
-	HANDLE sem_mutex_p;
-	HANDLE sem_mutex_c;
+	HANDLE mutex_cp;
 	HANDLE mutex_agua;
 	HANDLE event_atualiza;
 	int tempo;

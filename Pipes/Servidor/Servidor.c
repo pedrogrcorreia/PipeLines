@@ -50,11 +50,8 @@ DWORD WINAPI recebeComandos(LPVOID param) {
 
 	do {	
 		Jogo jogo;
-		//_tprintf(TEXT("HERE\n"));
 		// Esperar pelo semáforo dos itens
 		WaitForSingleObject(dados->sem_itens, INFINITE);
-		// Esperar pelo semáforo do consumidor
-		WaitForSingleObject(dados->sem_mutex_c, INFINITE);
 		// Copiar para o processo o item a consumir
 		CopyMemory(&jogo, &dados->ptr_modelo->jogosBuffer[dados->ptr_modelo->ent], sizeof(Jogo));
 		// Incrementar posição de leitura
@@ -85,8 +82,6 @@ DWORD WINAPI recebeComandos(LPVOID param) {
 			//printMapa(dados->ptr_memoria->mapas[0]);
 		}
 
-		// Assinalar semáforo do consumidor
-		ReleaseSemaphore(dados->sem_mutex_c, 1, NULL);
 		// Assinalar semáforo dos vazios
 		ReleaseSemaphore(dados->sem_vazios, 1, NULL);
 		
@@ -321,8 +316,6 @@ int _tmain(int argc, LPTSTR argv[]) {
 	/* Cria semáforos para o modelo produtor consumidor */
 	dados.sem_itens = CreateSemaphore(NULL, 0, BUFFER, SEMAFORO_ITENS);
 	dados.sem_vazios = CreateSemaphore(NULL, BUFFER, BUFFER, SEMAFORO_VAZIOS);
-	dados.sem_mutex_p = CreateSemaphore(NULL, 1, 1, SEM_MUTEX_P);
-	dados.sem_mutex_c = CreateSemaphore(NULL, 1, 1, SEM_MUTEX_C);
 
 	/* Mutex para controlar a suspensão da água */
 	dados.mutex_agua = CreateMutex(NULL, FALSE, MUTEX_AGUA);
@@ -348,6 +341,6 @@ int _tmain(int argc, LPTSTR argv[]) {
 	// Fechar o ficheiro de memória partilhada
 	UnmapViewOfFile(dados.ptr_memoria);
 	UnmapViewOfFile(dados.ptr_modelo);
-
+	
 	return 0;
 }
