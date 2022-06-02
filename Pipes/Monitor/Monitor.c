@@ -92,7 +92,6 @@ DWORD WINAPI enviaComandos(LPVOID param) {
 		// Decrementar a posição de escrita
 		dados->ptr_modelo->sai = (dados->ptr_modelo->sai + 1) % BUFFER;
 		// Assinalar o semáforo do produtor
-		_tprintf(TEXT("%s"), cmd);
 		ReleaseSemaphore(dados->sem_mutex_p, 1, NULL);
 		// Assinalar o semáforo dos itens
 		ReleaseSemaphore(dados->sem_itens, 1, NULL);

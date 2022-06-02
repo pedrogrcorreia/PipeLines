@@ -20,7 +20,7 @@ DWORD WINAPI recebeInput(LPVOID param) {
 		if (_tcsicmp(cmd, TEXT("\n")) != 0) {
 			cmd[_tcslen(cmd) - 1] = '\0';
 		}
-		if (_tscicmp(cmd, TEXT("fim")) == 0) {
+		if (_tcsicmp(cmd, TEXT("fim")) == 0) {
 			break;
 		}
 		else {
@@ -66,10 +66,6 @@ DWORD WINAPI recebeComandos(LPVOID param) {
 		if (jogo.agua != 0) {
 			dados->jogo.agua = jogo.agua;
 			_tprintf(TEXT("A agua foi suspensa por %d segundos"), dados->jogo.agua);
-			/*WaitForSingleObject(dados->mutex_agua, INFINITE);
-			Sleep(dados->jogo.agua * 1000);
-			dados->jogo.agua = 0;
-			ReleaseMutex(dados->mutex_agua);*/
 			HANDLE thread = CreateThread(NULL, 0, suspendeAgua, &dados, 0, NULL);
 		}
 		
@@ -85,7 +81,8 @@ DWORD WINAPI recebeComandos(LPVOID param) {
 		if (jogo.insereBarreira == true) {
 			_tprintf(TEXT("Foi inserida uma barreira na posição %d %d"), jogo.barreira.x, jogo.barreira.y);
 			dados->ptr_memoria->mapas[0].board[jogo.barreira.x][jogo.barreira.y] = '|';
-			printMapa(dados->ptr_memoria->mapas[0]);
+			SetEvent(dados->event_atualiza);
+			//printMapa(dados->ptr_memoria->mapas[0]);
 		}
 
 		// Assinalar semáforo do consumidor
@@ -288,7 +285,7 @@ int _tmain(int argc, LPTSTR argv[]) {
 	/* Criação do mapa com um caminho definido */
 
 	mapa = criaMapaDebug(mapa);
-	printMapa(mapa);
+	//printMapa(mapa);
 
 	/* Iniciar memoria partilhada */
 
@@ -327,7 +324,7 @@ int _tmain(int argc, LPTSTR argv[]) {
 	dados.sem_mutex_p = CreateSemaphore(NULL, 1, 1, SEM_MUTEX_P);
 	dados.sem_mutex_c = CreateSemaphore(NULL, 1, 1, SEM_MUTEX_C);
 
-	/* Mutex para controlar a suspensão da água*/
+	/* Mutex para controlar a suspensão da água */
 	dados.mutex_agua = CreateMutex(NULL, FALSE, MUTEX_AGUA);
 	dados.event_atualiza = CreateEvent(NULL, FALSE, FALSE, EVENT_ATUALIZAR);
 
