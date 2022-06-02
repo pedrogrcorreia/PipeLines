@@ -12,8 +12,11 @@
 #define MUTEX_AGUA TEXT("MUTEX_AGUA")
 #define EVENT_ATUALIZAR TEXT("EVENT_ATUALIZAR")
 
+#define PIPE_SERVER TEXT("\\\\.\\pipe\\server")
+
 #define BUFFER 100
 #define BUFFER_CHAR 100
+#define MAX_CLI 2
 
 // Estrutura que representa uma barreira e a sua posição
 typedef struct {
@@ -29,6 +32,15 @@ typedef struct {
 	bool insereBarreira;
 	Barreira barreira;
 } Jogo;
+
+typedef struct {
+	int x;
+	int y;
+	TCHAR nome[20];
+	TCHAR mensagem[20];
+	bool termina;
+	HANDLE hPipe;
+} Cliente;
 
 // Estrutura para utilizar no modelo produtor consumidor como
 // Memória partilhada
@@ -55,8 +67,12 @@ typedef struct {
 	HANDLE mutex_cp;
 	HANDLE mutex_agua;
 	HANDLE event_atualiza;
+	HANDLE serverPipe;
+	HWND hWnd;
+	Cliente eu; // ADDED
 	int tempo;
 	int lin;
 	int col;
 	Jogo jogo;
+	Cliente clientes[MAX_CLI];
 } TDados;

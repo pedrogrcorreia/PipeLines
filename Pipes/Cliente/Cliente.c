@@ -9,11 +9,36 @@
 #include <strsafe.h>
 #include "..\util.h"
 
+#define Cl_Sz sizeof(Cliente)
+
+HANDLE event; //DEBUG RETIRAR DEPOIS
+
+//int ClienteWrite(Cliente eu) {
+//	BOOL fSuccess = FALSE;
+//	DWORD cbWritten;
+//	HANDLE WriteReady;
+//	OVERLAPPED OverlWr = { 0 };
+//	HANDLE hPipe = eu.hPipe;
+//	WriteReady = CreateEvent(NULL, TRUE, FALSE, NULL);
+//
+//	ZeroMemory(&OverlWr, sizeof(OverlWr));
+//	ResetEvent(WriteReady);
+//	OverlWr.hEvent = WriteReady;
+//
+//	fSuccess = WriteFile(hPipe, &eu, Cl_Sz, &cbWritten, &OverlWr);
+//
+//	WaitForSingleObject(WriteReady, INFINITE);
+//
+//	GetOverlappedResult(hPipe, &OverlWr, &cbWritten, FALSE);
+//
+//	return 1;
+//}
+
 int getSquare(int x, int y) {
 	for (int i = 0; i < 3; i++) {
 		for (int j = 0; j < 3; j++) {
 			if (x > j * 100 && x < j * 100 + 100 && y > i && y < i * 100 + 100) {
-				return j + i * 3;
+				return j + i * 3; // o 3 é o n de linhas
 			}
 		}
 	}
@@ -62,8 +87,91 @@ HWND CriarJanela(HINSTANCE hInst, TCHAR* szWinName) {
 	);
 }
 
+DWORD WINAPI ThreadClienteReader(LPVOID param) {
+	Cliente FromServer;
+	DWORD cbBytesRead = 0;
+	BOOL fSuccess = FALSE;
+	//Cliente* eu = (Cliente*)param;
+	TDados* dados = (TDados*)param;
+	Cliente* eu = &dados->eu;
+	HANDLE hPipe = eu->hPipe;
+	OVERLAPPED OverlRd = { 0 };
+	DWORD result;
+	HANDLE ev;
+	TCHAR msg[100];
+	ev = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+	while (!eu->termina) {
+		ZeroMemory(&OverlRd, sizeof(OverlRd));
+		OverlRd.hEvent = ev;
+		ResetEvent(ev);
+		
+		fSuccess = ReadFile(hPipe, &FromServer, Cl_Sz, &cbBytesRead, &OverlRd);
+
+		GetOverlappedResult(hPipe, &OverlRd, &cbBytesRead, FALSE);
+
+		if (FromServer.termina) {
+			eu->termina = true;
+			break;
+		}
+		HDC hdc = GetDC(dados->hWnd);
+		_stprintf_s(msg, 100, TEXT("%d"), FromServer.mensagem);
+		TextOut(hdc, 400, 400, msg, _tcslen(msg));
+		InvalidateRect(dados->hWnd, NULL, TRUE);
+	}
+
+	CloseHandle(ev);
+	return 1;
+}
+
+DWORD WINAPI ThreadClienteWritter(LPVOID param) {
+	Cliente* eu = (Cliente*)param;
+	BOOL fSuccess = FALSE;
+	DWORD cbWritten;
+	HANDLE WriteReady;
+	OVERLAPPED OverlWr = { 0 };
+	HANDLE hPipe = eu->hPipe;
+	WriteReady = CreateEvent(NULL, TRUE, FALSE, NULL);
+	_tcscpy_s(eu->nome, 20, TEXT("PEDRO CORREIA"));
+	eu->termina = false;
+	eu->x = 0;
+	eu->y = 0;
+	event = CreateEvent(NULL, FALSE, FALSE, TEXT("EVENTO"));
+	while (!eu->termina) {
+		WaitForSingleObject(event, INFINITE);
+		ZeroMemory(&OverlWr, sizeof(OverlWr));
+		ResetEvent(WriteReady);
+		OverlWr.hEvent = WriteReady;
+
+		fSuccess = WriteFile(hPipe, eu, Cl_Sz, &cbWritten, &OverlWr);
+
+		WaitForSingleObject(WriteReady, INFINITE);
+
+		GetOverlappedResult(hPipe, &OverlWr, &cbWritten, FALSE);
+
+		if (eu->termina) {
+			break;
+		}
+	}
+
+	CloseHandle(WriteReady);
+	return 0;
+}
+
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow) {
 
+	HANDLE hPipe;
+	BOOL fSuccess = FALSE;
+	DWORD cbWritten, dwMode;
+	HANDLE hThread[2];
+	DWORD dwThreadId = 0;
+	TCHAR janelaPrinc[] = TEXT("PipeGame");
+
+	TDados dados;
+	HWND hWnd;
+	MSG msg;
+
+	Cliente eu;
 #ifdef UNICODE 
 	if (_setmode(_fileno(stdin), _O_WTEXT) == -1) {
 		perror("Impossivel user _setmode()");
@@ -76,17 +184,28 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	}
 #endif
 
-	TCHAR janelaPrinc[] = TEXT("PipeGame");
+	while (1) {
+		hPipe = CreateFile(PIPE_SERVER, GENERIC_READ | GENERIC_WRITE, 0 | FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0 | FILE_FLAG_OVERLAPPED, NULL);
 
-	HWND hWnd;
-	MSG msg;
+		if (hPipe != INVALID_HANDLE_VALUE) {
+			eu.hPipe = hPipe;
+			break;
+		}
+	}
+
+	dwMode = PIPE_READMODE_MESSAGE;
+	fSuccess = SetNamedPipeHandleState(hPipe, &dwMode, NULL, NULL);
+	dados.eu.hPipe = hPipe;
+	hThread[0] = CreateThread(NULL, 0, ThreadClienteReader, (LPVOID)&dados, 0, 0);
+	hThread[1] = CreateThread(NULL, 0, ThreadClienteWritter, (LPVOID)&eu, 0, 0);
+
 	if (!RegistaClasse(hInst, janelaPrinc)) {
 		return 0;
 	}
 
-	hWnd = CriarJanela(hInst, janelaPrinc);
+	dados.hWnd = CriarJanela(hInst, janelaPrinc);
 
-	HDC hdc = GetDC(hWnd);
+	HDC hdc = GetDC(dados.hWnd);
 
 	for (int i = 0; i < 3; i++) {
 		//HWND hwndButton = CreateWindow(
@@ -104,8 +223,27 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 		Rectangle(hdc, i, i, i + 10, i + 10);
 	}
 
-	ShowWindow(hWnd, nCmdShow);
-	UpdateWindow(hWnd);
+	ShowWindow(dados.hWnd, nCmdShow);
+	UpdateWindow(dados.hWnd);
+
+
+	//hThread[1] = CreateThread(NULL, 0, ThreadClienteWriter, (LPVOID)&eu, 0, 0);
+
+	//DWORD result;
+	//result = WaitForMultipleObjects(2, hThread, FALSE, INFINITE);
+
+	//HANDLE WriteReady;
+	//OVERLAPPED OverlWr = { 0 };
+	//WriteReady = CreateEvent(NULL, TRUE, FALSE, NULL);
+	//ZeroMemory(&OverlWr, sizeof(OverlWr));
+	//ResetEvent(WriteReady);
+	//OverlWr.hEvent = WriteReady;
+
+	//eu.termina = true;
+
+	//fSuccess = WriteFile(hPipe, &eu, Cl_Sz, &cbWritten, &OverlWr);
+	//CloseHandle(WriteReady);
+	//CloseHandle(hPipe);
 
 	while (GetMessage(&msg, NULL, 0, 0)) {
 		TranslateMessage(&msg);
@@ -120,6 +258,9 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 	TCHAR msg[100];
 	PAINTSTRUCT ps;
 	POINTS p;
+	Cliente c;
+	event = CreateEvent(NULL, FALSE, FALSE, TEXT("EVENTO"));
+	_tcscpy_s(c.nome, 20, TEXT("PEDRO CORREIA"));
 	switch (messg) {
 	case WM_CREATE:
 		
@@ -161,6 +302,8 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		/*_stprintf_s(msg, 100, TEXT("%d, %d"), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));*/
 		_stprintf_s(msg, 100, TEXT("%d"), rect);
 		TextOut(hdc, p.x, p.y, msg, _tcslen(msg));
+		SetEvent(event);
+		//ClienteWrite(c);
 		break;
 	default:
 		// Neste exemplo, para qualquer outra mensagem (p.e. "minimizar","maximizar","restaurar")

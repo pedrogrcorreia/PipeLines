@@ -139,8 +139,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Clientes.c" />
     <ClCompile Include="mapa.c" />
     <ClCompile Include="Servidor.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Clientes.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

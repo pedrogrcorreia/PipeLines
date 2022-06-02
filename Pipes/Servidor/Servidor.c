@@ -6,8 +6,15 @@
 #include <time.h>
 #include "../util.h"
 #include "../mapa.h"
+#include "Clientes.h"
 
 #define MAX 256
+#define BUFSIZE 2048
+#define Cl_Sz sizeof(Cliente)
+HANDLE WriteReady;
+
+
+
 
 /* Thread para receber input do utilizador
 	NESTA META APENAS SERVE PARA TERMINAR O SERVIDOR*/
@@ -117,6 +124,73 @@ DWORD WINAPI moveAgua(LPVOID param) {
 		// Libertar mutex
 		ReleaseMutex(dados->mutex_agua);
 	} while (i < dados->col);
+}
+
+DWORD WINAPI ClienteThread(LPVOID param) {
+	TDados* dados = (TDados*)param;
+	Cliente recebido, enviado;
+	DWORD cbBytesRead = 0, cbReplyBytes = 0;
+	BOOL fSuccess = FALSE;
+	HANDLE hPipe = dados->serverPipe;
+	HANDLE ReadReady;
+	OVERLAPPED OverlRd = { 0 };
+	_tprintf(TEXT("ENTROU CLIENTE\n"));
+	ReadReady = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+	adicionaCliente(dados, hPipe);
+
+	while (1) {
+		ZeroMemory(&OverlRd, sizeof(OverlRd));
+		ResetEvent(ReadReady);
+		OverlRd.hEvent = ReadReady;
+
+		fSuccess = ReadFile(hPipe, &recebido, Cl_Sz, &cbBytesRead, &OverlRd);
+		//_tprintf(TEXT("%d"), fSuccess);
+		WaitForSingleObject(ReadReady, INFINITE);
+
+		GetOverlappedResult(hPipe, &OverlRd, &cbBytesRead, FALSE);
+		if (recebido.termina) {
+			break;
+		}
+		//registaCliente(dados, recebido);
+		writeClienteASINC(hPipe, recebido);
+		_tprintf(TEXT("%s\n"), recebido.nome);
+	}
+
+	FlushFileBuffers(hPipe);
+	DisconnectNamedPipe(hPipe);
+	CloseHandle(hPipe);
+
+	return 1;
+}
+
+DWORD WINAPI recebeClientes(LPVOID param) {
+	TDados* dados = (TDados*)param;
+	BOOL fConnected = FALSE;
+	DWORD dwThreadId = 0;
+	HANDLE hThread = NULL;
+	HANDLE hPipe;
+	WriteReady = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+	while (1) {
+		hPipe = CreateNamedPipe(PIPE_SERVER, PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, PIPE_UNLIMITED_INSTANCES, BUFSIZE, BUFSIZE, 5000, NULL);
+
+		fConnected = ConnectNamedPipe(hPipe, NULL) ? TRUE : (GetLastError() == ERROR_PIPE_CONNECTED);
+		dados->serverPipe = hPipe;
+		if (fConnected) {
+			hThread = CreateThread(NULL, 0, ClienteThread, (LPVOID)dados, 0, &dwThreadId);
+			if (hThread == NULL) {
+				return -1;
+			}
+			else {
+				CloseHandle(hThread);
+			}
+		}
+		else {
+			CloseHandle(hPipe);
+		}
+	}
+	return 0;
 }
 
 int _tmain(int argc, LPTSTR argv[]) {
@@ -298,6 +372,8 @@ int _tmain(int argc, LPTSTR argv[]) {
 	}
 	dados.ptr_modelo = (Modelo*)MapViewOfFile(objMapMod, FILE_MAP_ALL_ACCESS, 0, 0, 0);
 
+	iniciaClientes(&dados);
+
 
 	/* Inicializar a estrutura de dados */
 	Jogo jogo;
@@ -321,7 +397,7 @@ int _tmain(int argc, LPTSTR argv[]) {
 	dados.mutex_agua = CreateMutex(NULL, FALSE, MUTEX_AGUA);
 	dados.event_atualiza = CreateEvent(NULL, FALSE, FALSE, EVENT_ATUALIZAR);
 
-	HANDLE hThread[3];
+	HANDLE hThread[4];
 	/* Thread para receber comandos do Monitor */
 	hThread[0] = CreateThread(NULL, 0, recebeComandos, &dados, 0, NULL);
 
@@ -331,9 +407,12 @@ int _tmain(int argc, LPTSTR argv[]) {
 	/* Thread para receber comandos do utilizador */
 	hThread[2] = CreateThread(NULL, 0, recebeInput, &dados, 0, NULL);
 
+	/* Thread para receber clientes */
+	hThread[3] = CreateThread(NULL, 0, recebeClientes, &dados, 0, NULL);
+
 
 	/* Esperar que uma das threads termine para terminar o processo */
-	WaitForMultipleObjects(3, hThread, FALSE, INFINITE);
+	WaitForMultipleObjects(4, hThread, FALSE, INFINITE);
 
 	// Terminar todos os processos que estejam à espera
 	dados.ptr_memoria->terminar = true;
