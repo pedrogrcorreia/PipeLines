@@ -91,36 +91,40 @@ DWORD WINAPI ThreadClienteReader(LPVOID param) {
 	Cliente FromServer;
 	DWORD cbBytesRead = 0;
 	BOOL fSuccess = FALSE;
-	//Cliente* eu = (Cliente*)param;
-	TDados* dados = (TDados*)param;
-	Cliente* eu = &dados->eu;
+	Cliente* eu = (Cliente*)param;
+	//TDados* dados = (TDados*)param;
+	//Cliente* eu = &dados->eu;
 	HANDLE hPipe = eu->hPipe;
 	OVERLAPPED OverlRd = { 0 };
 	DWORD result;
-	HANDLE ev;
+	HANDLE ReadReady;
 	TCHAR msg[100];
-	ev = CreateEvent(NULL, TRUE, FALSE, NULL);
-
+	ReadReady = CreateEvent(NULL, TRUE, FALSE, NULL);
+	_tprintf(TEXT("THREAD PARA OUVIR DO SERVIDOR LANÇADA!\n"));
 	while (!eu->termina) {
 		ZeroMemory(&OverlRd, sizeof(OverlRd));
-		OverlRd.hEvent = ev;
-		ResetEvent(ev);
+		OverlRd.hEvent = ReadReady;
+		ResetEvent(ReadReady);
 		
 		fSuccess = ReadFile(hPipe, &FromServer, Cl_Sz, &cbBytesRead, &OverlRd);
+
+		WaitForSingleObject(ReadReady, INFINITE);
 
 		GetOverlappedResult(hPipe, &OverlRd, &cbBytesRead, FALSE);
 
 		if (FromServer.termina) {
+			_tprintf(TEXT("Recebi uma mensagem: %s\n"), FromServer.mensagem);
 			eu->termina = true;
 			break;
 		}
-		HDC hdc = GetDC(dados->hWnd);
-		_stprintf_s(msg, 100, TEXT("%d"), FromServer.mensagem);
-		TextOut(hdc, 400, 400, msg, _tcslen(msg));
-		InvalidateRect(dados->hWnd, NULL, TRUE);
+		_tprintf(TEXT("Recebi uma mensagem: %s\n"), FromServer.mensagem);
+		//HDC hdc = GetDC(dados->hWnd);
+		//_stprintf_s(msg, 100, TEXT("%d"), FromServer.mensagem);
+		//TextOut(hdc, 400, 400, msg, _tcslen(msg));
+		//InvalidateRect(dados->hWnd, NULL, TRUE);
 	}
 
-	CloseHandle(ev);
+	CloseHandle(ReadReady);
 	return 1;
 }
 
@@ -148,7 +152,7 @@ DWORD WINAPI ThreadClienteWritter(LPVOID param) {
 		WaitForSingleObject(WriteReady, INFINITE);
 
 		GetOverlappedResult(hPipe, &OverlWr, &cbWritten, FALSE);
-
+		_tprintf(TEXT("ESCREVI PARA O SERVIDOR!"));
 		if (eu->termina) {
 			break;
 		}
@@ -172,6 +176,18 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	MSG msg;
 
 	Cliente eu;
+
+
+	/* CRIACAO DE CONSOLA PARA DEBUG */
+	AllocConsole();
+	HANDLE stdHandle;
+	int hConsole;
+	FILE* fp;
+	stdHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+	hConsole = _open_osfhandle((long)stdHandle, _O_TEXT);
+	fp = _fdopen(hConsole, "w");
+
+	freopen_s(&fp, "CONOUT$", "w", stdout);
 #ifdef UNICODE 
 	if (_setmode(_fileno(stdin), _O_WTEXT) == -1) {
 		perror("Impossivel user _setmode()");
@@ -195,8 +211,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 
 	dwMode = PIPE_READMODE_MESSAGE;
 	fSuccess = SetNamedPipeHandleState(hPipe, &dwMode, NULL, NULL);
-	dados.eu.hPipe = hPipe;
-	hThread[0] = CreateThread(NULL, 0, ThreadClienteReader, (LPVOID)&dados, 0, 0);
+	eu.hPipe = hPipe;
+	hThread[0] = CreateThread(NULL, 0, ThreadClienteReader, (LPVOID)&eu, 0, 0);
 	hThread[1] = CreateThread(NULL, 0, ThreadClienteWritter, (LPVOID)&eu, 0, 0);
 
 	if (!RegistaClasse(hInst, janelaPrinc)) {

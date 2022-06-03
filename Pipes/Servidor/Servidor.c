@@ -14,7 +14,21 @@
 HANDLE WriteReady;
 
 
+int writeClienteASINC(HANDLE hPipe, Cliente c) {
+	DWORD cbWritten = 0;
+	BOOL fSuccess = FALSE;
 
+	OVERLAPPED OverlWr = { 0 };
+
+	ZeroMemory(&OverlWr, sizeof(OverlWr));
+	ResetEvent(WriteReady);
+	OverlWr.hEvent = WriteReady;
+
+	fSuccess = WriteFile(hPipe, &c, Cl_Sz, &cbWritten, &OverlWr);
+	WaitForSingleObject(WriteReady, INFINITE);
+	GetOverlappedResult(hPipe, &OverlWr, &cbWritten, FALSE);
+	return 1;
+}
 
 /* Thread para receber input do utilizador
 	NESTA META APENAS SERVE PARA TERMINAR O SERVIDOR*/
@@ -147,13 +161,16 @@ DWORD WINAPI ClienteThread(LPVOID param) {
 		fSuccess = ReadFile(hPipe, &recebido, Cl_Sz, &cbBytesRead, &OverlRd);
 		//_tprintf(TEXT("%d"), fSuccess);
 		WaitForSingleObject(ReadReady, INFINITE);
-
+	
 		GetOverlappedResult(hPipe, &OverlRd, &cbBytesRead, FALSE);
 		if (recebido.termina) {
 			break;
 		}
+		enviado.hPipe = hPipe;
+		enviado.termina = false;
+		_tcscpy_s(enviado.mensagem, 20, TEXT("ESTOU A FUNCIONAR!"));
 		//registaCliente(dados, recebido);
-		writeClienteASINC(hPipe, recebido);
+		writeClienteASINC(hPipe, enviado);
 		_tprintf(TEXT("%s\n"), recebido.nome);
 	}
 

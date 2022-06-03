@@ -11,19 +11,19 @@ void iniciaClientes(TDados* dados) {
 	}
 }
 
-int writeClienteASINC(HANDLE hPipe, Cliente c) {
-	DWORD cbWritten = 0;
-	BOOL fSuccess = FALSE;
-
-	OVERLAPPED OverlWr = { 0 };
-
-	ZeroMemory(&OverlWr, sizeof(OverlWr));
-
-	fSuccess = WriteFile(hPipe, &c, Cl_Sz, &cbWritten, &OverlWr);
-	WaitForSingleObject(WriteReady, INFINITE);
-	GetOverlappedResult(hPipe, &OverlWr, &cbWritten, FALSE);
-	return 1;
-}
+//int writeClienteASINC(HANDLE hPipe, Cliente c) {
+//	DWORD cbWritten = 0;
+//	BOOL fSuccess = FALSE;
+//
+//	OVERLAPPED OverlWr = { 0 };
+//
+//	ZeroMemory(&OverlWr, sizeof(OverlWr));
+//
+//	fSuccess = WriteFile(hPipe, &c, Cl_Sz, &cbWritten, &OverlWr);
+//	WaitForSingleObject(WriteReady, INFINITE);
+//	GetOverlappedResult(hPipe, &OverlWr, &cbWritten, FALSE);
+//	return 1;
+//}
 
 void adicionaCliente(TDados* dados, HANDLE hPipe) {
 	for (int i = 0; i < MAX_CLI; i++) {
@@ -43,7 +43,7 @@ void registaCliente(TDados* dados, Cliente c) {
 			_tcscpy_s(dados->clientes[i].mensagem, BUFFER, TEXT("Cliente registado"));
 			dados->clientes[i].x = c.x;
 			dados->clientes[i].y = c.y;
-			writeClienteASINC(dados->clientes[i].hPipe, dados->clientes[i]);
+			//writeClienteASINC(dados->clientes[i].hPipe, dados->clientes[i]);
 			return;
 		}
 		_tprintf(TEXT("Não foi possível encontrar o cliente!\n"));
