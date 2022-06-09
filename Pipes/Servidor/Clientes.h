@@ -15,3 +15,5 @@ void iniciaClientes(TDados* dados);
 void adicionaCliente(TDados* dados, HANDLE hPipe);
 
 void registaCliente(TDados* dados, Cliente c);
+
+void removeCliente(TDados* dados, HANDLE hPipe);

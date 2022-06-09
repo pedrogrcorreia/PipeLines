@@ -5,14 +5,15 @@
 #include <stdio.h>
 #include <time.h>
 #include "../util.h"
-#include "../mapa.h"
-#include "Clientes.h"
+//#include "../mapa.h"
+//#include "Clientes.h"
 
 #define MAX 256
 #define BUFSIZE 2048
 #define Cl_Sz sizeof(Cliente)
 HANDLE WriteReady;
 
+void comecaIndividual(TDados* dados, HANDLE hPipe);
 
 int writeClienteASINC(HANDLE hPipe, Cliente c) {
 	DWORD cbWritten = 0;
@@ -63,6 +64,22 @@ DWORD WINAPI suspendeAgua(LPVOID param) {
 	_tprintf(TEXT("Thread para suspender a água terminada...\n"));
 }
 
+DWORD WINAPI suspendeAguaCliente(LPVOID param) {
+	TDados* dados = (TDados*)param;
+	int nCliente = -1;
+	for (int i = 0; i < dados->ptr_memoria->nClientes; i++) {
+		if (dados->ptr_memoria->clientes[i].hPipe == dados->eu.hPipe) {
+			nCliente = i;
+			break;
+		}
+	}
+	_tprintf(TEXT("Cliente %d suspendeu a água.\n"));
+
+	WaitForSingleObject(dados->ptr_memoria->clientes[nCliente].mutexAgua, INFINITE);
+	Sleep(2000);
+	ReleaseMutex(dados->ptr_memoria->clientes[nCliente].mutexAgua);
+}
+
 /* Thread para receber comandos do processo Monitor
 	Através do modelo Produtor - Consumidor */
 
@@ -89,16 +106,33 @@ DWORD WINAPI recebeComandos(LPVOID param) {
 		
 		// Ativar aleatorio
 		if (dados->jogo.aleatorio == true && jogo.aleatorio == false) {
+			Cliente c;
+			_tcscpy_s(c.mensagem, 20, TEXT("ALEATORIO"));
+			c.aleatorio = false;
+			for (int i = 0; i < dados->ptr_memoria->nClientes; i++) {
+				writeClienteASINC(dados->ptr_memoria->clientes[i].hPipe, c);
+			}
 			_tprintf(TEXT("Modo aleatório desativado.\n"));
 		}
 		if (dados->jogo.aleatorio == false && jogo.aleatorio == true) {
+			Cliente c;
+			_tcscpy_s(c.mensagem, 20, TEXT("ALEATORIO"));
+			c.aleatorio = true;
+			c.termina = false;
+			for (int i = 0; i < dados->ptr_memoria->nClientes; i++) {
+				_tprintf(TEXT("ESCREVI!\n"));
+				writeClienteASINC(dados->ptr_memoria->clientes[i].hPipe, c);
+			}
 			_tprintf(TEXT("Modo aleatório ativado.\n"));
 		}
 
 		// Inserir bloco
 		if (jogo.insereBarreira == true) {
 			_tprintf(TEXT("Foi inserida uma barreira na posição %d %d"), jogo.barreira.x, jogo.barreira.y);
-			dados->ptr_memoria->mapas[0].board[jogo.barreira.x][jogo.barreira.y] = '|';
+			//dados->ptr_memoria->mapas[0].board[jogo.barreira.x][jogo.barreira.y] = '|';
+			for (int i = 0; i < dados->ptr_memoria->nClientes; i++) {
+				dados->ptr_memoria->clientes[i].mapa.board[jogo.barreira.x][jogo.barreira.y] = '|';
+			}
 			SetEvent(dados->event_atualiza);
 			//printMapa(dados->ptr_memoria->mapas[0]);
 		}
@@ -112,32 +146,57 @@ DWORD WINAPI recebeComandos(LPVOID param) {
 DWORD WINAPI moveAgua(LPVOID param) {
 	TDados* dados = (TDados*)param;
 	_tprintf(TEXT("Thread para mover a água lançada.\n"));
+	int nCliente = -1;
+	for (int i = 0; i < dados->ptr_memoria->nClientes; i++) {
+		if (dados->ptr_memoria->clientes[i].hPipe == dados->eu.hPipe) {
+			nCliente = i;
+			break;
+		}
+	}
 	Sleep(dados->tempo * 1000);
 	int i = 0;
 	dados->jogo.atualizar = true;
 	Agua agua;
-	agua.mapa = dados->ptr_memoria->mapas[0];
+	
 	agua.prox_lin = 0;
 	agua.prox_col = 0;
+	
+	//_tprintf(TEXT("nCliente: %d\n"), nCliente);
+	//agua.mapa = dados->ptr_memoria->mapas[nCliente];
+	agua.mapa = dados->ptr_memoria->clientes[nCliente].mapa;
 	do {
+		Cliente c;
 		// Esperar pelo mutex que pode estar a suspender a água
 		WaitForSingleObject(dados->mutex_agua, INFINITE);
-
-		if (agua.prox_lin >= dados->ptr_memoria->mapas[0].lin) {
+		WaitForSingleObject(dados->ptr_memoria->clientes[nCliente].mutexAgua, INFINITE);
+		if (agua.prox_lin >= dados->ptr_memoria->clientes[nCliente].mapa.lin) {
+			_tcscpy_s(c.mensagem, 20, TEXT("GANHOU"));
+			writeClienteASINC(dados->ptr_memoria->clientes[nCliente].hPipe, c);
 			break;
 		}
-		if (agua.prox_col >= dados->ptr_memoria->mapas[0].col) {
+		if (agua.prox_col >= dados->ptr_memoria->clientes[nCliente].mapa.col) {
+			_tcscpy_s(c.mensagem, 20, TEXT("GANHOU"));
+			writeClienteASINC(dados->ptr_memoria->clientes[nCliente].hPipe, c);
 			break;
 		}
 		agua = moverAgua(agua, agua.prox_lin, agua.prox_col);
-		dados->ptr_memoria->mapas[0] = agua.mapa;
-		_tprintf(TEXT("Agua a mexer...\n"));
+		dados->ptr_memoria->clientes[nCliente].agua = agua.mapa;
+		_tprintf(TEXT("Agua a mexer no cliente %d...\n"), nCliente);
 		//Atualizar o monitor...
 		SetEvent(dados->event_atualiza);
+
+		c.agua = agua.mapa;
+		c.mapa = dados->ptr_memoria->clientes[nCliente].mapa;
+		//printMapa(c.mapa);
+		c.termina = false;
+		_tcscpy_s(c.mensagem, 20, TEXT("AGUA"));
+		writeClienteASINC(dados->ptr_memoria->clientes[nCliente].hPipe, c);
 		Sleep(1000); // Sleep de 1 segundo para a água não correr rápido demais
 		// Libertar mutex
 		ReleaseMutex(dados->mutex_agua);
-	} while (i < dados->col);
+		ReleaseMutex(dados->ptr_memoria->clientes[nCliente].mutexAgua);
+	} while (1);
+	//dados->ptr_memoria->nClientes--; // limpar o mapa
 }
 
 DWORD WINAPI ClienteThread(LPVOID param) {
@@ -149,11 +208,27 @@ DWORD WINAPI ClienteThread(LPVOID param) {
 	HANDLE ReadReady;
 	OVERLAPPED OverlRd = { 0 };
 	_tprintf(TEXT("ENTROU CLIENTE\n"));
+
 	ReadReady = CreateEvent(NULL, TRUE, FALSE, NULL);
 
 	adicionaCliente(dados, hPipe);
-
+	int nCliente = -1;
+	for (int i = 0; i < dados->ptr_memoria->nClientes; i++) {
+		if (dados->ptr_memoria->clientes[i].hPipe == hPipe) {
+			nCliente = i;
+			break;
+		}
+	}
+	enviado.hPipe = hPipe;
+	enviado.termina = false;
+	enviado.aleatorio = dados->jogo.aleatorio;
+	enviado.mapa = dados->ptr_memoria->clientes[nCliente].mapa;
+	_tcscpy_s(enviado.mensagem, 20, TEXT("ESTOU A FUNCIONAR!"));
+	//registaCliente(dados, recebido);
+	SetEvent(dados->event_atualiza); // atualizar o monitor
+	writeClienteASINC(hPipe, enviado);
 	while (1) {
+		_tprintf(TEXT("RECEBI UMA MENSAGEM!!!\n"));
 		ZeroMemory(&OverlRd, sizeof(OverlRd));
 		ResetEvent(ReadReady);
 		OverlRd.hEvent = ReadReady;
@@ -161,17 +236,57 @@ DWORD WINAPI ClienteThread(LPVOID param) {
 		fSuccess = ReadFile(hPipe, &recebido, Cl_Sz, &cbBytesRead, &OverlRd);
 		//_tprintf(TEXT("%d"), fSuccess);
 		WaitForSingleObject(ReadReady, INFINITE);
-	
+
+		printMapa(dados->ptr_memoria->clientes[0].mapa);
 		GetOverlappedResult(hPipe, &OverlRd, &cbBytesRead, FALSE);
 		if (recebido.termina) {
+			removeCliente(dados, hPipe);
 			break;
 		}
-		enviado.hPipe = hPipe;
-		enviado.termina = false;
-		_tcscpy_s(enviado.mensagem, 20, TEXT("ESTOU A FUNCIONAR!"));
+		if (_tcsicmp(recebido.mensagem, TEXT("REGISTO")) == 0) {
+			if (recebido.individual) {
+				comecaIndividual(dados, hPipe);
+			}
+			else {
+				//comecaCompeticao(dados, hPipe);
+			}
+			continue;
+		}
+		if (_tcsicmp(recebido.mensagem, TEXT("JOGADA")) == 0) {
+			dados->ptr_memoria->clientes[nCliente].mapa = jogaPeca(dados->ptr_memoria->clientes[nCliente].mapa, recebido.x, recebido.y, recebido.peca);
+			_tcscpy_s(enviado.mensagem, 20, TEXT("JOGADA"));
+			enviado.mapa = dados->ptr_memoria->clientes[nCliente].mapa;
+			enviado.agua = dados->ptr_memoria->clientes[nCliente].agua;
+			writeClienteASINC(hPipe, enviado);
+			continue;
+		}
+		if (_tcsicmp(recebido.mensagem, TEXT("MUDAR")) == 0) {
+			dados->ptr_memoria->clientes[nCliente].mapa = jogaPeca(dados->ptr_memoria->clientes[nCliente].mapa, recebido.x, recebido.y, recebido.peca);
+			_tcscpy_s(enviado.mensagem, 20, TEXT("MUDAR"));
+			enviado.mapa = dados->ptr_memoria->clientes[nCliente].mapa;
+			writeClienteASINC(hPipe, enviado);
+			continue;
+		}
+		if (_tcsicmp(recebido.mensagem, TEXT("APAGAR")) == 0) {
+			dados->ptr_memoria->clientes[nCliente].mapa = jogaPeca(dados->ptr_memoria->clientes[nCliente].mapa, recebido.x, recebido.y, recebido.peca);
+			_tcscpy_s(enviado.mensagem, 20, TEXT("APAGAR"));
+			enviado.mapa = dados->ptr_memoria->clientes[nCliente].mapa;
+			writeClienteASINC(hPipe, enviado);
+			continue;
+		}
+		if (_tcsicmp(recebido.mensagem, TEXT("SUSPENDER")) == 0) {
+			// TO DO 
+		}
+		//enviado.hPipe = hPipe;
+		//enviado.termina = false;
+		//enviado.mapa = dados->ptr_memoria->mapas[0];
+		//enviado.agua = dados->ptr_memoria->agua;
+		//_tcscpy_s(enviado.mensagem, 20, TEXT("ESTOU A FUNCIONAR!"));
 		//registaCliente(dados, recebido);
-		writeClienteASINC(hPipe, enviado);
-		_tprintf(TEXT("%s\n"), recebido.nome);
+		//writeClienteASINC(hPipe, enviado);
+		//_tprintf(TEXT("%d\n"), recebido.individual);
+		//_tprintf(TEXT("%s\n"), recebido.nome);
+		//_tprintf(TEXT("%d\n"), recebido.square);
 	}
 
 	FlushFileBuffers(hPipe);
@@ -208,6 +323,20 @@ DWORD WINAPI recebeClientes(LPVOID param) {
 		}
 	}
 	return 0;
+}
+
+void comecaIndividual(TDados* dados, HANDLE hPipe) {
+	HANDLE hThread;
+	//Mapa mapa;
+	//mapa.lin = dados->lin;
+	//mapa.col = dados->col;
+	//mapa = criaMapaDebug(mapa);
+	//dados->ptr_memoria->mapas[dados->ptr_memoria->nClientes - 1] = mapa;
+	_tprintf(TEXT("Jogo individual a começar!\n"));
+	dados->eu.hPipe = hPipe;
+	hThread = CreateThread(NULL, 0, moveAgua, (LPVOID)dados, 0, NULL);
+	//WaitForSingleObject(hThread, INFINITE);
+	return;
 }
 
 int _tmain(int argc, LPTSTR argv[]) {
@@ -371,7 +500,7 @@ int _tmain(int argc, LPTSTR argv[]) {
 	/* Criação do mapa com um caminho definido */
 
 	mapa = criaMapaDebug(mapa);
-	//printMapa(mapa);
+	printMapa(mapa);
 
 	/* Iniciar memoria partilhada */
 
@@ -402,7 +531,12 @@ int _tmain(int argc, LPTSTR argv[]) {
 	jogo.atualizar = false;
 	jogo.insereBarreira = false;
 	jogo.barreira = b;
-	dados.ptr_memoria->mapas[0] = mapa;
+	//dados.ptr_memoria->mapas[0] = mapa;
+	//dados.ptr_memoria->mapas[1] = mapa;
+
+	dados.ptr_memoria->clientes[0].mapa = mapa;
+	dados.ptr_memoria->clientes[1].mapa = mapa;
+	dados.ptr_memoria->nClientes = 0;
 	dados.ptr_memoria->terminar = false;
 	dados.jogo = jogo;
 	
@@ -414,22 +548,25 @@ int _tmain(int argc, LPTSTR argv[]) {
 	dados.mutex_agua = CreateMutex(NULL, FALSE, MUTEX_AGUA);
 	dados.event_atualiza = CreateEvent(NULL, FALSE, FALSE, EVENT_ATUALIZAR);
 
-	HANDLE hThread[4];
+	/* Mutex para controloar a suspensao de água pelos clientes */
+	dados.ptr_memoria->clientes[0].mutexAgua = CreateMutex(NULL, FALSE, TEXT("MUTEX_AGUA_CLIENTE_1"));
+	dados.ptr_memoria->clientes[1].mutexAgua = CreateMutex(NULL, FALSE, TEXT("MUTEX_AGUA_CLIENTE_2"));
+
+	HANDLE hThread[3];
 	/* Thread para receber comandos do Monitor */
 	hThread[0] = CreateThread(NULL, 0, recebeComandos, &dados, 0, NULL);
 
 	/* Thread para movimentar a água */
-	hThread[1] = CreateThread(NULL, 0, moveAgua, &dados, 0, NULL);
+	//hThread[1] = CreateThread(NULL, 0, moveAgua, &dados, 0, NULL);
 	
 	/* Thread para receber comandos do utilizador */
-	hThread[2] = CreateThread(NULL, 0, recebeInput, &dados, 0, NULL);
+	hThread[1] = CreateThread(NULL, 0, recebeInput, &dados, 0, NULL);
 
 	/* Thread para receber clientes */
-	hThread[3] = CreateThread(NULL, 0, recebeClientes, &dados, 0, NULL);
-
+	hThread[2] = CreateThread(NULL, 0, recebeClientes, &dados, 0, NULL);
 
 	/* Esperar que uma das threads termine para terminar o processo */
-	WaitForMultipleObjects(4, hThread, FALSE, INFINITE);
+	WaitForMultipleObjects(3, hThread, FALSE, INFINITE);
 
 	// Terminar todos os processos que estejam à espera
 	dados.ptr_memoria->terminar = true;

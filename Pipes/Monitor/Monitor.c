@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <time.h>
 #include "../util.h"
-#include "../Mapa.h"
+//#include "../Mapa.h"
 
 #define MAX 256
 
@@ -106,7 +106,12 @@ DWORD WINAPI atualizar(LPVOID param) {
 	TDados* dados = (TDados*)param;
 	do {
 		WaitForSingleObject(dados->event_atualiza, INFINITE);
-		printMapa(dados->ptr_memoria->mapas[0]);
+		for (int i = 0; i < dados->ptr_memoria->nClientes; i++) {
+			printMapa(dados->ptr_memoria->clientes[i].mapa);
+			printMapa(dados->ptr_memoria->clientes[i].agua);
+		}
+		/*printMapa(dados->ptr_memoria->mapas[0]);
+		printMapa(dados->ptr_memoria->agua);*/
 		_tprintf(TEXT("\n"));
 	} while (!dados->ptr_memoria->terminar);
 }
@@ -175,7 +180,11 @@ int _tmain(int argc, LPTSTR argv[]) {
 	Jogo jogo;
 	Barreira b;
 
-	printMapa(dados.ptr_memoria->mapas[0]);
+	for (int i = 0; i < dados.ptr_memoria->nClientes; i++) {
+		printMapa(dados.ptr_memoria->clientes[i].mapa);
+	}
+
+	//printMapa(dados.ptr_memoria->mapas[0]);
 
 	HANDLE hThread[3];
 

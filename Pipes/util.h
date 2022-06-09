@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <stdbool.h>
 #include "mapa.h"
 
@@ -18,11 +18,16 @@
 #define BUFFER_CHAR 100
 #define MAX_CLI 2
 
-// Estrutura que representa uma barreira e a sua posição
+// Estrutura que representa uma barreira e a sua posiÃ§Ã£o
 typedef struct {
 	int x;
 	int y;
 } Barreira;
+
+typedef struct {
+	int lin;
+	int col;
+} Jogada;
 
 // Estrutura que representa o estado do jogo
 typedef struct { 
@@ -36,26 +41,37 @@ typedef struct {
 typedef struct {
 	int x;
 	int y;
+	int square;
+	TCHAR peca;
+	Mapa mapa;
+	Mapa agua;
+	bool aleatorio;
+	bool individual;
 	TCHAR nome[20];
 	TCHAR mensagem[20];
 	bool termina;
 	HANDLE hPipe;
+	HANDLE event;
+	HANDLE mutexAgua;
 } Cliente;
 
 // Estrutura para utilizar no modelo produtor consumidor como
-// Memória partilhada
+// MemÃ³ria partilhada
 typedef struct {
 	int ent;
 	int sai;
 	Jogo jogosBuffer[BUFFER];
 } Modelo;
 
-// Estrutura para colocar na memória partilhada
+// Estrutura para colocar na memÃ³ria partilhada
 typedef struct {
-	Mapa mapas[2];
+	//Mapa mapas[2];
+	//Mapa agua;
+	Cliente clientes[MAX_CLI];
 	bool terminar;
 	int lin;
 	int col;
+	int nClientes;
 } Memoria;
 
 // Estrutura auxiliar para enviar os dados para as Threads
@@ -69,10 +85,10 @@ typedef struct {
 	HANDLE event_atualiza;
 	HANDLE serverPipe;
 	HWND hWnd;
-	Cliente eu; // ADDED
+	Cliente eu;
 	int tempo;
 	int lin;
 	int col;
 	Jogo jogo;
-	Cliente clientes[MAX_CLI];
+	//Cliente clientes[MAX_CLI];
 } TDados;

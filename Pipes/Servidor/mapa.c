@@ -9,7 +9,7 @@
 Mapa criaMapa(Mapa mapa) {
 	for (int i = 0; i < mapa.lin; i++) {
 		for (int j = 0; j < mapa.col; j++) {
-			mapa.board[i][j] = 'a';
+			mapa.board[i][j] = TEXT('□');
 		}
 	}
 
@@ -19,12 +19,12 @@ Mapa criaMapa(Mapa mapa) {
 	//_tprintf(TEXT("%d %d\n"), ini, fin);
 
 	/* Coluna 0 e Linha random*/
-	mapa.board[ini][0] = 'i';
+	mapa.board[ini][0] = TEXT('━');
 
 	/* Ultima coluna e Linha random */
 
 	/* TODO DIAGONALMENTE OPOSTOS */
-	mapa.board[fin][mapa.col - 1] = 'f';
+	mapa.board[fin][mapa.col - 1] = TEXT('━');
 
 	return mapa;
 }
@@ -103,4 +103,34 @@ Agua moverAgua(Agua agua, int lin, int col) {
 		}
 	}
 	return agua;
+}
+
+Mapa jogaPeca(Mapa mapa, int lin, int col, TCHAR peca) {
+	mapa.board[lin][col] = peca;
+	return mapa;
+}
+
+TCHAR getProxPeca(TCHAR piece) {
+	TCHAR* p;
+	p = pecasText;
+
+	//_tprintf(TEXT("PECA %s\n"), piece);
+	for (int i = 0; i < 6; i++) {
+		if (piece == *(p+i)) {
+			if (i <= 4) {
+
+				return *(p+i+1);
+			}
+			else {
+				return *(p+0);
+			}
+		}
+	}
+}
+
+TCHAR getRandomPeca() {
+	srand(time(NULL));   // Initialization, should only be called once.
+	int r = rand() % 6;
+	TCHAR* p = pecasText;
+	return *(p + r);
 }

@@ -50,14 +50,15 @@ END
 // Dialog
 //
 
-IDD_DIALOG1 DIALOGEX 0, 0, 345, 210
+IDD_NAME DIALOGEX 0, 0, 345, 210
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Dialog"
+CAPTION "Jogador"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,198,189,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,288,189,50,14
-    PUSHBUTTON      "Button1",IDC_BUTTON1,7,7,28,30
+    EDITTEXT        IDC_EDIT_NAME,139,52,93,18,ES_AUTOHSCROLL
+    LTEXT           "Nome:",IDC_STATIC,97,54,27,17
+    PUSHBUTTON      "Individual",IDC_BUTTON_IND,110,159,50,14
+    PUSHBUTTON      "Competitivo",IDC_BUTTON_COMP,181,159,50,14
 END
 
 
@@ -69,7 +70,7 @@ END
 #ifdef APSTUDIO_INVOKED
 GUIDELINES DESIGNINFO
 BEGIN
-    IDD_DIALOG1, DIALOG
+    IDD_NAME, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 338
@@ -85,10 +86,34 @@ END
 // AFX_DIALOG_LAYOUT
 //
 
-IDD_DIALOG1 AFX_DIALOG_LAYOUT
+IDD_NAME AFX_DIALOG_LAYOUT
 BEGIN
     0
 END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_PECA_1              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-1.bmp"
+
+IDB_PECA_2              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-2.bmp"
+
+IDB_PECA_3              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-6.bmp"
+
+IDB_PECA_4              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-5.bmp"
+
+IDB_PECA_5              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-4.bmp"
+
+IDB_PECA_6              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-3.bmp"
+
+IDB_PECAS               BITMAP                  "C:\\Users\\pedro\\Downloads\\pecas.bmp"
+
+IDB_PECAS_AGUA          BITMAP                  "C:\\Users\\pedro\\Downloads\\pecas_agua.bmp"
+
+IDB_BARREIRA            BITMAP                  "C:\\Users\\pedro\\Downloads\\barreira.bmp"
 
 #endif    // Portuguese (Portugal) resources
 /////////////////////////////////////////////////////////////////////////////

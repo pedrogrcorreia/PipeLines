@@ -1,3 +1,4 @@
+#pragma once
 #include "Clientes.h"
 
 #define MAX 256
@@ -7,7 +8,7 @@ HANDLE WriteReady;
 
 void iniciaClientes(TDados* dados) {
 	for (int i = 0; i < MAX_CLI; i++) {
-		dados->clientes[i].hPipe = NULL;
+		dados->ptr_memoria->clientes[i].hPipe = NULL;
 	}
 }
 
@@ -27,8 +28,9 @@ void iniciaClientes(TDados* dados) {
 
 void adicionaCliente(TDados* dados, HANDLE hPipe) {
 	for (int i = 0; i < MAX_CLI; i++) {
-		if (dados->clientes[i].hPipe == NULL) {
-			dados->clientes[i].hPipe = hPipe;
+		if (dados->ptr_memoria->clientes[i].hPipe == NULL) {
+			dados->ptr_memoria->clientes[i].hPipe = hPipe;
+			dados->ptr_memoria->nClientes++;
 			_tprintf(TEXT("Cliente adicionado com sucesso! Na posição %d.\n"), i);
 			return;
 		}
@@ -37,12 +39,12 @@ void adicionaCliente(TDados* dados, HANDLE hPipe) {
 
 void registaCliente(TDados* dados, Cliente c) {
 	for (int i = 0; i < MAX_CLI; i++) {
-		if (dados->clientes[i].hPipe == c.hPipe) {
+		if (dados->ptr_memoria->clientes[i].hPipe == c.hPipe) {
 			_tprintf(TEXT("A escrever para o cliente\n"));
-			_tcscpy_s(dados->clientes[i].nome, BUFFER, c.nome);
-			_tcscpy_s(dados->clientes[i].mensagem, BUFFER, TEXT("Cliente registado"));
-			dados->clientes[i].x = c.x;
-			dados->clientes[i].y = c.y;
+			_tcscpy_s(dados->ptr_memoria->clientes[i].nome, BUFFER, c.nome);
+			_tcscpy_s(dados->ptr_memoria->clientes[i].mensagem, BUFFER, TEXT("Cliente registado"));
+			dados->ptr_memoria->clientes[i].x = c.x;
+			dados->ptr_memoria->clientes[i].y = c.y;
 			//writeClienteASINC(dados->clientes[i].hPipe, dados->clientes[i]);
 			return;
 		}
@@ -50,8 +52,12 @@ void registaCliente(TDados* dados, Cliente c) {
 	}
 }
 
-//void terminaCliente(TDados* dados, Cliente c) {
-//	for (int i = 0; i < MAX_CLI; i++) {
-//
-//	}
-//}
+void removeCliente(TDados* dados, HANDLE hPipe) {
+	for (int i = 0; i < MAX_CLI; i++) {
+		if (dados->ptr_memoria->clientes[i].hPipe == hPipe) {
+			dados->ptr_memoria->clientes[i].hPipe = NULL;
+			dados->ptr_memoria->nClientes--;
+			return;
+		}
+	}
+}
