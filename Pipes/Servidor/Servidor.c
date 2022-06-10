@@ -175,7 +175,7 @@ DWORD WINAPI recebeComandos(LPVOID param) {
 
 DWORD WINAPI moveAgua(LPVOID param) {
 	TDados* dados = (TDados*)param;
-	_tprintf(TEXT("Thread para mover a água lançada.\n"));
+	
 	int nCliente = -1;
 	for (int i = 0; i < dados->ptr_memoria->nClientes; i++) {
 		if (dados->ptr_memoria->clientes[i].hPipe == dados->eu.hPipe) {
@@ -183,6 +183,8 @@ DWORD WINAPI moveAgua(LPVOID param) {
 			break;
 		}
 	}
+	_tprintf(TEXT("NOME: %s\n"), dados->eu.nome);
+	_tprintf(TEXT("Thread para mover a água do cliente %d lançada.\n"), nCliente);
 	Sleep(dados->tempo * 1000);
 	int i = 0;
 	dados->jogo.atualizar = true;
@@ -201,7 +203,7 @@ DWORD WINAPI moveAgua(LPVOID param) {
 		LPVOID lpMsgBuf;
 		LPVOID lpDisplayBuf;
 		//_tprintf(TEXT("result %d\n"), result);
-		result = WaitForSingleObject(dados->ptr_memoria->clientes[0].mutexAgua, INFINITE);
+		result = WaitForSingleObject(dados->ptr_memoria->clientes[nCliente].mutexAgua, INFINITE);
 		
 		//TCHAR buf[256];
 		//FormatMessage(
@@ -294,7 +296,8 @@ DWORD WINAPI ClienteThread(LPVOID param) {
 		registaCliente(dados, recebido);
 		if (_tcsicmp(recebido.mensagem, TEXT("REGISTO")) == 0) {
 			if (recebido.individual) {
-				comecaIndividual(dados, hPipe);
+				dados->eu.hPipe = recebido.hPipe;
+				comecaIndividual(dados, recebido.hPipe);
 			}
 			else {
 				//comecaCompeticao(dados, hPipe);
@@ -388,7 +391,7 @@ void comecaIndividual(TDados* dados, HANDLE hPipe) {
 	//mapa = criaMapaDebug(mapa);
 	//dados->ptr_memoria->mapas[dados->ptr_memoria->nClientes - 1] = mapa;
 	_tprintf(TEXT("Jogo individual a começar!\n"));
-	dados->eu.hPipe = hPipe;
+	//dados->eu.hPipe = hPipe;
 	hThread = CreateThread(NULL, 0, moveAgua, (LPVOID)dados, 0, NULL);
 	//WaitForSingleObject(hThread, INFINITE);
 	return;
