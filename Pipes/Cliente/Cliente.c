@@ -114,7 +114,10 @@ DWORD WINAPI ThreadClienteReader(LPVOID param) {
 
 		GetOverlappedResult(hPipe, &OverlRd, &cbBytesRead, FALSE);
 
-		dados->eu = FromServer;
+		dados->eu.mapa = FromServer.mapa;
+		dados->eu.agua = FromServer.agua;
+		dados->eu.aleatorio = FromServer.aleatorio;
+		//dados->eu = FromServer; Acho que é muito para assumir tudo como certo, vai dar override de certos valores
 		//InvalidateRect(dados->hWnd, NULL, FALSE);
 		if (FromServer.termina) {
 			_tprintf(TEXT("Recebi uma mensagem: %s\n"), FromServer.mensagem);
@@ -243,6 +246,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	fSuccess = SetNamedPipeHandleState(hPipe, &dwMode, NULL, NULL);
 	eu.hPipe = hPipe;
 	eu.peca = pecasText[0][0];
+	eu.moveRato = false;
 	dados.eu = eu;
 	hThread[0] = CreateThread(NULL, 0, ThreadClienteReader, (LPVOID)&dados, 0, 0);
 	hThread[1] = CreateThread(NULL, 0, ThreadClienteWritter, (LPVOID)&dados, 0, 0);
@@ -368,6 +372,7 @@ static BOOL CALLBACK dNome(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam) 
 			GetDlgItemText(hWnd, IDC_EDIT_NAME, dados->eu.nome, 20);
 			_tcscpy_s(dados->eu.mensagem, 20, TEXT("REGISTO"));
 			dados->eu.individual = true;
+			dados->eu.ajuda = 0;
 			SetEvent(event);
 			EndDialog(hWnd, 0);
 			return TRUE;
@@ -376,6 +381,7 @@ static BOOL CALLBACK dNome(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam) 
 			GetDlgItemText(hWnd, IDC_EDIT_NAME, dados->eu.nome, 20);
 			_tcscpy_s(dados->eu.mensagem, 20, TEXT("REGISTO"));
 			dados->eu.individual = false;
+			dados->eu.ajuda = 0;
 			SetEvent(event);
 			EndDialog(hWnd, 0);
 			return TRUE;
@@ -415,7 +421,6 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 	event = CreateEvent(NULL, FALSE, FALSE, TEXT("EVENTO"));
 	
 	bool g_fMouseTracking = FALSE;
-
 	switch (messg) {
 	case WM_CREATE:
 		pecas = LoadBitmap((HINSTANCE)GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_PECAS));
@@ -507,7 +512,6 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 					dados->eu.x = rect.lin;
 					dados->eu.y = rect.col;
 					_tcscpy_s(dados->eu.mensagem, 20, TEXT("MUDAR"));
-					_tcscpy_s(dados->eu.nome, 20, TEXT("PEDRO CORREIA"));
 					SetEvent(event);
 					return;
 				}
@@ -522,7 +526,6 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		dados->eu.x = rect.lin;
 		dados->eu.y = rect.col;
 		_tcscpy_s(dados->eu.mensagem, 20, TEXT("JOGADA"));
-		_tcscpy_s(dados->eu.nome, 20, TEXT("PEDRO CORREIA"));
 		if (!dados->eu.aleatorio) {
 			dados->eu.peca = getProxPeca(pecasText[0][0]);
 		}
@@ -543,7 +546,6 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			dados->eu.x = rect.lin;
 			dados->eu.y = rect.col;
 			_tcscpy_s(dados->eu.mensagem, 20, TEXT("APAGAR"));
-			_tcscpy_s(dados->eu.nome, 20, TEXT("PEDRO CORREIA"));
 			SetEvent(event);
 		}
 		break;
@@ -554,8 +556,14 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			tme.cbSize = sizeof(TRACKMOUSEEVENT);
 			tme.dwFlags = TME_HOVER | TME_LEAVE;
 			tme.hwndTrack = hWnd;
-			tme.dwHoverTime = 0;
+			tme.dwHoverTime = 2000;
 			g_fMouseTracking = TrackMouseEvent(&tme);
+		}
+		if (dados->eu.moveRato) {
+			_tprintf(TEXT("AQUI\n"));
+			_tcscpy_s(dados->eu.mensagem, 20, TEXT("RATO"));
+			dados->eu.moveRato = false;
+			SetEvent(event);
 		}
 		x = LOWORD(lParam);
 		y = HIWORD(lParam);
@@ -564,39 +572,28 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		x = LOWORD(lParam);
 		y = HIWORD(lParam);
 		g_fMouseTracking = FALSE;
-		/*for (int i = 0; i < dados->ptr_memoria->; i++) {
-			if (!dados->hPop) {
-				if (dados->ptr_memoria->avioes[i].x <= x && (dados->ptr_memoria->avioes[i].x + 30) >= x && dados->ptr_memoria->avioes[i].y <= y && (dados->ptr_memoria->avioes[i].y + 30) >= y) {
-					TCHAR text[BUFFER];
-					int np = 0;
-					for (int j = 0; j < dados->numpassag; j++) {
-						if (dados->p[j].voo == dados->ptr_memoria->avioes[i].id) {
-							np++;
-						}
-					}
-					_stprintf_s(text, BUFFER, TEXT("Avião %d.\nPartida: %s\nDestino: %s\nNº Passageiros: %d"), dados->ptr_memoria->avioes[i].id, dados->ptr_memoria->avioes[i].inicial.nome, dados->ptr_memoria->avioes[i].destino.nome, np);
-					dados->hPop = CriarJanelaPopUp(hInstance, text, hWnd, dados->ptr_memoria->avioes[i].x, dados->ptr_memoria->avioes[i].y);
-					ShowWindow(dados->hPop, SW_SHOW);
-
-					TRACKMOUSEEVENT tme;
-					tme.cbSize = sizeof(TRACKMOUSEEVENT);
-					tme.dwFlags = TME_LEAVE;
-					tme.hwndTrack = hWnd;
-					g_fMouseTracking = TrackMouseEvent(&tme);
-				}
+		if (dados->eu.ajuda < 3) {
+			if (x > 50 && x < 100) { // TO DO colocar as coordenadas da peça onde está a agua atualmente
+				_tcscpy_s(dados->eu.mensagem, 20, TEXT("SUSPENDER"));
+				dados->eu.ajuda++;
+				_tprintf(TEXT("AJUDA N %d\n"), dados->eu.ajuda);
+				dados->eu.moveRato = true;
+				SetEvent(event);
+				TRACKMOUSEEVENT tme;
+				tme.cbSize = sizeof(TRACKMOUSEEVENT);
+				tme.dwFlags = TME_LEAVE;
+				tme.hwndTrack = hWnd;
+				g_fMouseTracking = TrackMouseEvent(&tme);
 			}
-			
-		}*/
-		if (x > 50 && x < 100) {
-			_tcscpy_s(dados->eu.mensagem, 20, TEXT("SUSPENDER"));
-			_tcscpy_s(dados->eu.nome, 20, TEXT("PEDRO CORREIA"));
-			dados->eu.peca = TEXT('┓');
-			SetEvent(event);
 		}
+
 		return 0;
 		break;
 	case  WM_MOUSELEAVE:
-		g_fMouseTracking = FALSE;
+		//g_fMouseTracking = FALSE;
+		//_tcscpy_s(dados->eu.mensagem, 20, TEXT("RATO"));
+		//_tcscpy_s(dados->eu.nome, 20, TEXT("PEDRO CORREIA"));
+		//SetEvent(event);
 		return 0;
 		break;
 	default:

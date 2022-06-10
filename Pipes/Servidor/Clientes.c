@@ -41,11 +41,10 @@ void registaCliente(TDados* dados, Cliente c) {
 	for (int i = 0; i < MAX_CLI; i++) {
 		if (dados->ptr_memoria->clientes[i].hPipe == c.hPipe) {
 			_tprintf(TEXT("A escrever para o cliente\n"));
-			_tcscpy_s(dados->ptr_memoria->clientes[i].nome, BUFFER, c.nome);
-			_tcscpy_s(dados->ptr_memoria->clientes[i].mensagem, BUFFER, TEXT("Cliente registado"));
+			_tcscpy_s(dados->ptr_memoria->clientes[i].nome, MAX_LETTERS, c.nome);
 			dados->ptr_memoria->clientes[i].x = c.x;
 			dados->ptr_memoria->clientes[i].y = c.y;
-			//writeClienteASINC(dados->clientes[i].hPipe, dados->clientes[i]);
+			dados->ptr_memoria->clientes[i].termina = false;
 			return;
 		}
 		_tprintf(TEXT("Não foi possível encontrar o cliente!\n"));

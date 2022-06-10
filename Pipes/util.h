@@ -16,6 +16,7 @@
 
 #define BUFFER 100
 #define BUFFER_CHAR 100
+#define MAX_LETTERS 20
 #define MAX_CLI 2
 
 // Estrutura que representa uma barreira e a sua posição
@@ -42,17 +43,20 @@ typedef struct {
 	int x;
 	int y;
 	int square;
+	int ajuda;
 	TCHAR peca;
 	Mapa mapa;
 	Mapa agua;
 	bool aleatorio;
 	bool individual;
-	TCHAR nome[20];
-	TCHAR mensagem[20];
+	TCHAR nome[MAX_LETTERS];
+	TCHAR mensagem[MAX_LETTERS];
 	bool termina;
 	HANDLE hPipe;
 	HANDLE event;
 	HANDLE mutexAgua;
+	HANDLE event_rato;
+	bool moveRato;
 } Cliente;
 
 // Estrutura para utilizar no modelo produtor consumidor como
