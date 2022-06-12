@@ -117,7 +117,8 @@ DWORD WINAPI ThreadClienteReader(LPVOID param) {
 		dados->eu.mapa = FromServer.mapa;
 		dados->eu.agua = FromServer.agua;
 		dados->eu.aleatorio = FromServer.aleatorio;
-		//dados->eu = FromServer; Acho que é muito para assumir tudo como certo, vai dar override de certos valores
+		//dados->eu.hPipe = FromServer.hPipe;
+		//dados->eu = FromServer;// Acho que é muito para assumir tudo como certo, vai dar override de certos valores
 		//InvalidateRect(dados->hWnd, NULL, FALSE);
 		if (FromServer.termina) {
 			_tprintf(TEXT("Recebi uma mensagem: %s\n"), FromServer.mensagem);
@@ -169,17 +170,19 @@ DWORD WINAPI ThreadClienteWritter(LPVOID param) {
 	OVERLAPPED OverlWr = { 0 };
 	HANDLE hPipe = eu->hPipe;
 	WriteReady = CreateEvent(NULL, TRUE, FALSE, NULL);
-	_tcscpy_s(eu->nome, 20, TEXT("PEDRO CORREIA"));
 	eu->termina = false;
 	eu->x = 0;
 	eu->y = 0;
-	event = CreateEvent(NULL, FALSE, FALSE, TEXT("EVENTO"));
+	DWORD result = GetCurrentThreadId();
+	TCHAR eventName[20];
+	_stprintf_s(eventName, 20, TEXT("EVENTO %d"), result);
+	event = CreateEvent(NULL, FALSE, FALSE, eventName);
+	_tprintf(TEXT("HPIPE: %d\n"), hPipe);
 	while (!eu->termina) {
 		WaitForSingleObject(event, INFINITE);
 		ZeroMemory(&OverlWr, sizeof(OverlWr));
 		ResetEvent(WriteReady);
 		OverlWr.hEvent = WriteReady;
-
 		fSuccess = WriteFile(hPipe, eu, Cl_Sz, &cbWritten, &OverlWr);
 
 		WaitForSingleObject(WriteReady, INFINITE);
@@ -248,6 +251,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	eu.peca = pecasText[0][0];
 	eu.moveRato = false;
 	dados.eu = eu;
+	dados.eu.hPipe = hPipe;
+
 	hThread[0] = CreateThread(NULL, 0, ThreadClienteReader, (LPVOID)&dados, 0, 0);
 	hThread[1] = CreateThread(NULL, 0, ThreadClienteWritter, (LPVOID)&dados, 0, 0);
 
@@ -418,7 +423,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 	TDados* dados;
 	dados = (TDados*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 	//#define SQ_SZ 50/(dados->eu.mapa.lin*dados->eu.mapa.col)
-	event = CreateEvent(NULL, FALSE, FALSE, TEXT("EVENTO"));
+	//event = CreateEvent(NULL, FALSE, FALSE, TEXT("EVENTO"));
 	
 	bool g_fMouseTracking = FALSE;
 	switch (messg) {
@@ -485,6 +490,8 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		break;
 	case WM_DESTROY:	// Destruir a janela e terminar o programa 
 						// "PostQuitMessage(Exit Status)"		
+		dados->eu.termina = true;
+		SetEvent(event);
 		PostQuitMessage(0);
 		break;
 	case WM_COMMAND:

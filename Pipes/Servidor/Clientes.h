@@ -12,8 +12,10 @@ void iniciaClientes(TDados* dados);
 
 //int writeClienteASINC(HANDLE hPipe, Cliente c);
 
-void adicionaCliente(TDados* dados, HANDLE hPipe);
+int adicionaCliente(TDados* dados, HANDLE hPipe);
 
 void registaCliente(TDados* dados, Cliente c);
+
+void printClientes(TDados* dados);
 
 void removeCliente(TDados* dados, HANDLE hPipe);

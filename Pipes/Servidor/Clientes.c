@@ -26,13 +26,13 @@ void iniciaClientes(TDados* dados) {
 //	return 1;
 //}
 
-void adicionaCliente(TDados* dados, HANDLE hPipe) {
+int adicionaCliente(TDados* dados, HANDLE hPipe) {
 	for (int i = 0; i < MAX_CLI; i++) {
 		if (dados->ptr_memoria->clientes[i].hPipe == NULL) {
 			dados->ptr_memoria->clientes[i].hPipe = hPipe;
 			dados->ptr_memoria->nClientes++;
 			_tprintf(TEXT("Cliente adicionado com sucesso! Na posição %d.\n"), i);
-			return;
+			return i;
 		}
 	}
 }
@@ -48,6 +48,13 @@ void registaCliente(TDados* dados, Cliente c) {
 			return;
 		}
 		_tprintf(TEXT("Não foi possível encontrar o cliente!\n"));
+	}
+}
+
+void printClientes(TDados* dados) {
+	for (int i = 0; i < MAX_CLI; i++) {
+		_tprintf(TEXT("Nome: %s\n"), dados->ptr_memoria->clientes[i].nome);
+		_tprintf(TEXT("Pipe: %d\n"), dados->ptr_memoria->clientes[i].hPipe);
 	}
 }
 
