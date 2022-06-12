@@ -455,7 +455,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 				//SelectObject(auxdc, bmpPeca);
 				Rectangle(memDC, j * SQ_SZ, i * SQ_SZ, j * SQ_SZ + SQ_SZ, i * SQ_SZ + SQ_SZ);
 				for (int k = 0; k < 2; k++) {
-					for (int l = 0; l < 3; l++) {
+					for (int l = 0; l < 4; l++) {
 						SelectObject(auxdc, pecas);
 						if (dados->eu.mapa.board[i][j] == pecasText[k][l]) {
 							/*BitBlt(memDC, j * SQ_SZ, i * SQ_SZ, j * SQ_SZ + SQ_SZ, i * SQ_SZ + SQ_SZ, auxdc, l * 50, k * 50, SRCCOPY);*/
@@ -507,7 +507,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		//_stprintf_s(msg, 100, TEXT("%d"), rect);
 
 		for (int i = 0; i < 2; i++) {
-			for (int j = 0; j < 3; j++) {
+			for (int j = 0; j < 4; j++) {
 				if (dados->eu.mapa.board[rect.lin][rect.col] == pecasText[i][j]) {
 					if (!dados->eu.aleatorio) {
 						dados->eu.peca = getProxPeca(pecasText[i][j]);

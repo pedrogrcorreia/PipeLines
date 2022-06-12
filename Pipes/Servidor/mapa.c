@@ -35,8 +35,8 @@ Mapa criaMapaDebug(Mapa mapa) {
 			mapa.board[i][j] = TEXT('□');
 		}
 	}
-	mapa.board[0][0] = TEXT('━');
-	mapa.board[mapa.lin - 1][mapa.col - 1] = TEXT('┃');
+	mapa.board[0][0] = TEXT('i');
+	//mapa.board[mapa.lin - 1][mapa.col - 1] = TEXT('┃');
 
 	for (int i = 1; i < mapa.col - 1; i++) {
 		mapa.board[0][i] = TEXT('━');
@@ -47,6 +47,8 @@ Mapa criaMapaDebug(Mapa mapa) {
 	for (int i = 1; i < mapa.lin - 1; i++) {
 		mapa.board[i][mapa.col - 1] = TEXT('┃');
 	}
+
+	mapa.board[mapa.lin-1][mapa.col-1] = TEXT('f');
 
 	return mapa;
 }
@@ -65,6 +67,28 @@ Agua moverAgua(Agua agua, int lin, int col) {
 	//agua.mapa.board[lin][col] = 'w';
 	_tprintf(TEXT("%d %d\n"), lin, col);
 
+	//Peça f - acaba o jogo
+	if (agua.mapa.board[lin][col] == TEXT('f')) {
+		agua.mapa.board[lin][col] = TEXT('w');
+		// ganhou TO DO
+		agua.prox_lin = lin + 1;
+		agua.prox_col = col;
+		return agua;
+	}
+
+	// Peça i - Verifica à frente
+	if (agua.mapa.board[lin][col] == TEXT('i')) {
+		agua.mapa.board[lin][col] = TEXT('w');
+		if (agua.mapa.board[lin][col + 1] == TEXT('□')) {
+			// perdeu
+			return agua;
+		}
+		else {
+			agua.prox_lin = lin;
+			agua.prox_col = col + 1;
+			return agua;
+		}
+	}
 	// Peça ━ Verifica à frente
 	if (agua.mapa.board[lin][col] == TEXT('━')) {
 		agua.mapa.board[lin][col] = TEXT('w');

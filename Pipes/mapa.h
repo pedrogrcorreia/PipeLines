@@ -4,9 +4,9 @@
 #pragma once
 #define MAX_LENGTH 20
 
-static TCHAR pecasText[2][3] = {
-	{TEXT('┃'), TEXT('━'), TEXT('┛')},
-	{TEXT('┗'), TEXT('┏'), TEXT('┓')}
+static TCHAR pecasText[2][4] = {
+	{TEXT('┃'), TEXT('━'), TEXT('┛'), TEXT('i')},
+	{TEXT('┗'), TEXT('┏'), TEXT('┓'), TEXT('f')}
 };
 
 // Estrutura que representa o mapa do jogo

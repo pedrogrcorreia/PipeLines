@@ -97,23 +97,23 @@ END
 // Bitmap
 //
 
-IDB_PECA_1              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-1.bmp"
+//IDB_PECA_1              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-1.bmp"
 
-IDB_PECA_2              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-2.bmp"
+//IDB_PECA_2              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-2.bmp"
 
-IDB_PECA_3              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-6.bmp"
+//IDB_PECA_3              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-6.bmp"
 
-IDB_PECA_4              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-5.bmp"
+//IDB_PECA_4              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-5.bmp"
 
-IDB_PECA_5              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-4.bmp"
+//IDB_PECA_5              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-4.bmp"
 
-IDB_PECA_6              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-3.bmp"
+//IDB_PECA_6              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-3.bmp"
 
-IDB_PECAS               BITMAP                  "C:\\Users\\pedro\\Downloads\\pecas.bmp"
+IDB_PECAS               BITMAP                  "img\\pecas.bmp"
 
-IDB_PECAS_AGUA          BITMAP                  "C:\\Users\\pedro\\Downloads\\pecas_agua.bmp"
+IDB_PECAS_AGUA          BITMAP                  "img\\pecas_agua.bmp"
 
-IDB_BARREIRA            BITMAP                  "C:\\Users\\pedro\\Downloads\\barreira.bmp"
+IDB_BARREIRA            BITMAP                  "img\\barreira.bmp"
 
 #endif    // Portuguese (Portugal) resources
 /////////////////////////////////////////////////////////////////////////////
