@@ -149,16 +149,12 @@
     <ResourceCompile Include="Cliente.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\..\..\Downloads\barreira.bmp" />
-    <Image Include="..\..\..\..\downloads\bitmap1.bmp" />
-    <Image Include="..\..\..\..\Downloads\peca-1.bmp" />
-    <Image Include="..\..\..\..\Downloads\peca-2.bmp" />
-    <Image Include="..\..\..\..\Downloads\peca-3.bmp" />
-    <Image Include="..\..\..\..\Downloads\peca-4.bmp" />
-    <Image Include="..\..\..\..\Downloads\peca-5.bmp" />
-    <Image Include="..\..\..\..\Downloads\peca-6.bmp" />
-    <Image Include="..\..\..\..\Downloads\pecas.bmp" />
     <Image Include="..\..\..\..\Downloads\pecas_agua.bmp" />
+    <Image Include="img\barreira.bmp" />
+    <Image Include="img\pecas.bmp" />
+    <Image Include="img\pecas_agua.bmp" />
+    <Image Include="img\pecas_agua_dark.bmp" />
+    <Image Include="img\pecas_dark.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -97,23 +97,38 @@ END
 // Bitmap
 //
 
-//IDB_PECA_1              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-1.bmp"
-
-//IDB_PECA_2              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-2.bmp"
-
-//IDB_PECA_3              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-6.bmp"
-
-//IDB_PECA_4              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-5.bmp"
-
-//IDB_PECA_5              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-4.bmp"
-
-//IDB_PECA_6              BITMAP                  "C:\\Users\\pedro\\Downloads\\peca-3.bmp"
-
 IDB_PECAS               BITMAP                  "img\\pecas.bmp"
 
 IDB_PECAS_AGUA          BITMAP                  "img\\pecas_agua.bmp"
 
 IDB_BARREIRA            BITMAP                  "img\\barreira.bmp"
+
+IDB_PECAS_DARK          BITMAP                  "img\\pecas_dark.bmp"
+
+IDB_PECAS_AGUA_DARK     BITMAP                  "img\\pecas_agua_dark.bmp"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MENU1 MENU
+BEGIN
+    POPUP "Jogo"
+    BEGIN
+        POPUP "Peças"
+        BEGIN
+            MENUITEM "Modo Escuro",                 ID_DARK_MODE
+            MENUITEM "Modo Claro",                  ID_LIGHT_MODE
+        END
+    END
+    POPUP "Sobre"
+    BEGIN
+        MENUITEM "Regras",                      ID_SOBRE_REGRAS
+        MENUITEM "Autores",                     ID_SOBRE_AUTORES
+    END
+END
 
 #endif    // Portuguese (Portugal) resources
 /////////////////////////////////////////////////////////////////////////////

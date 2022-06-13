@@ -45,6 +45,8 @@ void registaCliente(TDados* dados, Cliente c) {
 			dados->ptr_memoria->clientes[i].x = c.x;
 			dados->ptr_memoria->clientes[i].y = c.y;
 			dados->ptr_memoria->clientes[i].termina = false;
+			dados->ptr_memoria->clientes[i].aleatorio = c.aleatorio;
+			dados->ptr_memoria->clientes[i].nivel = c.nivel;
 			return;
 		}
 		_tprintf(TEXT("Não foi possível encontrar o cliente!\n"));
@@ -52,9 +54,11 @@ void registaCliente(TDados* dados, Cliente c) {
 }
 
 void printClientes(TDados* dados) {
-	for (int i = 0; i < MAX_CLI; i++) {
+	for (int i = 0; i < dados->ptr_memoria->nClientes; i++) {
 		_tprintf(TEXT("Nome: %s\n"), dados->ptr_memoria->clientes[i].nome);
-		_tprintf(TEXT("Pipe: %d\n"), dados->ptr_memoria->clientes[i].hPipe);
+		_tprintf(TEXT("Nível: %d\n"), dados->ptr_memoria->clientes[i].nivel);
+		_tprintf(TEXT("Mapa atual:\n"));
+		printMapa(dados->ptr_memoria->clientes[i].mapa);
 	}
 }
 

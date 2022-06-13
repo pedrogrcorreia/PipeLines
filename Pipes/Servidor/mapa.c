@@ -19,12 +19,12 @@ Mapa criaMapa(Mapa mapa) {
 	//_tprintf(TEXT("%d %d\n"), ini, fin);
 
 	/* Coluna 0 e Linha random*/
-	mapa.board[ini][0] = TEXT('━');
+	mapa.board[ini][0] = TEXT('i');
 
 	/* Ultima coluna e Linha random */
 
 	/* TODO DIAGONALMENTE OPOSTOS */
-	mapa.board[fin][mapa.col - 1] = TEXT('━');
+	mapa.board[fin][mapa.col - 1] = TEXT('f');
 
 	return mapa;
 }
@@ -139,15 +139,33 @@ TCHAR getProxPeca(TCHAR piece) {
 	p = pecasText;
 
 	//_tprintf(TEXT("PECA %s\n"), piece);
-	for (int i = 0; i < 6; i++) {
+	/*for (int i = 0; i < 8; i++) {
 		if (piece == *(p+i)) {
-			if (i <= 4) {
-
+			if (i <= 6) {
+				if (i == 2) {
+					return *(p + 4);
+				}
 				return *(p+i+1);
 			}
 			else {
 				return *(p+0);
 			}
+		}
+	}*/
+	for (int i = 0; i < 3; i++) {
+		if (piece == *(p + i)) {
+			if (i == 2) {
+				return *(p + i + 2);
+			}
+			return *(p + i + 1);
+		}
+	}
+	for (int i = 4; i < 7; i++) {
+		if (piece == *(p + i)) {
+			if (i == 6) {
+				return *(p + 0);
+			}
+			return *(p + i + 1);
 		}
 	}
 }

@@ -19,6 +19,8 @@
 #define MAX_LETTERS 20
 #define MAX_CLI 2
 
+static TCHAR status[2][4] = { TEXT("Off"), TEXT("On") };
+
 // Estrutura que representa uma barreira e a sua posição
 typedef struct {
 	int x;
@@ -57,6 +59,9 @@ typedef struct {
 	HANDLE mutexAgua;
 	HANDLE event_rato;
 	bool moveRato;
+	bool darkMode;
+	int tempo;
+	int nivel;
 } Cliente;
 
 // Estrutura para utilizar no modelo produtor consumidor como

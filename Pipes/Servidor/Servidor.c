@@ -45,7 +45,16 @@ DWORD WINAPI recebeInput(LPVOID param) {
 			cmd[_tcslen(cmd) - 1] = '\0';
 		}
 		if (_tcsicmp(cmd, TEXT("fim")) == 0) {
+			dados->ptr_memoria->terminar = true;
+			Cliente c;
+			c.termina = true;
+			for (int i = 0; i < dados->ptr_memoria->nClientes; i++) {
+				writeClienteASINC(dados->ptr_memoria->clientes[i].hPipe, c);
+			}
 			break;
+		}
+		if (_tcsicmp(cmd, TEXT("listar")) == 0) {
+			printClientes(dados);
 		}
 		else {
 			continue;
@@ -188,7 +197,21 @@ DWORD WINAPI moveAgua(LPVOID param) {
 	}
 	//_tprintf(TEXT("NOME: %s\n"), dados->eu.nome);
 	_tprintf(TEXT("Thread para mover a água do cliente %d lançada.\n"), nCliente);
-	Sleep(dados->tempo * 1000);
+	Cliente c;
+	c.termina = false;
+	c.mapa = dados->ptr_memoria->clientes[nCliente].mapa;
+	c.agua = dados->ptr_memoria->clientes[nCliente].agua;
+	c.aleatorio = dados->ptr_memoria->clientes[nCliente].aleatorio;
+	c.nivel = dados->ptr_memoria->clientes[nCliente].nivel;
+	for (int i = 1; i <= dados->tempo; i++) {
+		Sleep(1000);
+		_tcscpy_s(c.mensagem, 20, TEXT("TEMPO"));
+		c.mapa = dados->ptr_memoria->clientes[nCliente].mapa;
+		c.tempo = dados->tempo - i;
+		_tprintf(TEXT("A dormir..\n"));
+		writeClienteASINC(dados->ptr_memoria->clientes[nCliente].hPipe, c);
+	}
+	
 	int i = 0;
 	dados->jogo.atualizar = true;
 	Agua agua;
@@ -200,7 +223,7 @@ DWORD WINAPI moveAgua(LPVOID param) {
 	//agua.mapa = dados->ptr_memoria->mapas[nCliente];
 	agua.mapa = dados->ptr_memoria->clientes[nCliente].mapa;
 	do {
-		Cliente c;
+		//Cliente c;
 		// Esperar pelo mutex que pode estar a suspender a água
 		DWORD result = WaitForSingleObject(dados->mutex_agua, INFINITE);
 		//LPVOID lpMsgBuf;
@@ -243,7 +266,9 @@ DWORD WINAPI moveAgua(LPVOID param) {
 		if (!dados->ptr_memoria->clientes[nCliente].termina) {
 			writeClienteASINC(dados->ptr_memoria->clientes[nCliente].hPipe, c);
 		}
+		
 		Sleep(1000); // Sleep de 1 segundo para a água não correr rápido demais
+		//Sleep((11 - dados->ptr_memoria->clientes[nCliente].nivel) * 1000); // decresce 1 segundo por nivel a velocidade da agua
 		// Libertar mutex
 		ReleaseMutex(dados->mutex_agua);
 		ReleaseMutex(dados->ptr_memoria->clientes[nCliente].mutexAgua);
@@ -280,11 +305,12 @@ DWORD WINAPI ClienteThread(LPVOID param) {
 	enviado.termina = false;
 	enviado.aleatorio = dados->jogo.aleatorio;
 	enviado.mapa = dados->ptr_memoria->clientes[nCliente].mapa;
+	enviado.nivel = 1;
 	_tcscpy_s(enviado.mensagem, 20, TEXT("ESTOU A FUNCIONAR!"));
 
 	SetEvent(dados->event_atualiza); // atualizar o monitor
 	writeClienteASINC(hPipe, enviado);
-	while (1) {
+	while (!dados->ptr_memoria->terminar) {
 		ZeroMemory(&OverlRd, sizeof(OverlRd));
 		ResetEvent(ReadReady);
 		OverlRd.hEvent = ReadReady;
@@ -304,7 +330,7 @@ DWORD WINAPI ClienteThread(LPVOID param) {
 			removeCliente(dados, hPipe);
 			break;
 		}
-		registaCliente(dados, recebido);
+		registaCliente(dados, recebido); // MELHOR PASSAR PARA DENTRO DAS MENSAGENS??
 		if (_tcsicmp(recebido.mensagem, TEXT("REGISTO")) == 0) {
 			if (recebido.individual) {
 				comecaIndividual(dados, hPipe);
@@ -346,6 +372,22 @@ DWORD WINAPI ClienteThread(LPVOID param) {
 		if (_tcsicmp(recebido.mensagem, TEXT("RATO")) == 0) {
 			SetEvent(dados->ptr_memoria->clientes[nCliente].event_rato);
 		}
+		if (_tcsicmp(recebido.mensagem, TEXT("NOVO")) == 0) {
+			dados->ptr_memoria->clientes[nCliente].mapa = criaMapa(dados->ptr_memoria->clientes[nCliente].mapa);
+			Agua agua;
+
+			agua.prox_lin = 0;
+			agua.prox_col = 0;
+
+			//_tprintf(TEXT("nCliente: %d\n"), nCliente);
+			//agua.mapa = dados->ptr_memoria->mapas[nCliente];
+			agua.mapa = dados->ptr_memoria->clientes[nCliente].mapa;
+			dados->ptr_memoria->clientes[nCliente].agua = agua.mapa;
+			if (dados->ptr_memoria->clientes[nCliente].nivel < 10) {
+				dados->ptr_memoria->clientes[nCliente].nivel++; // Até nível 10
+			}
+			comecaIndividual(dados, hPipe);
+		}
 		//enviado.hPipe = hPipe;
 		//enviado.termina = false;
 		//enviado.mapa = dados->ptr_memoria->mapas[0];
@@ -373,7 +415,7 @@ DWORD WINAPI recebeClientes(LPVOID param) {
 	HANDLE hPipe;
 	WriteReady = CreateEvent(NULL, TRUE, FALSE, NULL);
 
-	while (1) {
+	while (!dados->ptr_memoria->terminar) {
 		hPipe = CreateNamedPipe(PIPE_SERVER, PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, PIPE_UNLIMITED_INSTANCES, BUFSIZE, BUFSIZE, 5000, NULL);
 
 		fConnected = ConnectNamedPipe(hPipe, NULL) ? TRUE : (GetLastError() == ERROR_PIPE_CONNECTED);

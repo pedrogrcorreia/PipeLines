@@ -11,7 +11,7 @@
 #include "..\util.h"
 //#include "..\mapa.h"
 
-#define SQ_SZ 50
+#define SQ_SZ 500
 #define Cl_Sz sizeof(Cliente)
 
 
@@ -34,10 +34,10 @@ HANDLE event; //DEBUG RETIRAR DEPOIS
 //	//	return 2;
 //	//}
 //}
-Jogada getSquare(TDados* dados, int x, int y) {
+Jogada getSquare(TDados* dados, int x, int y, int width, int height) {
 	for (int i = 0; i < dados->eu.mapa.lin; i++) {
 		for (int j = 0; j < dados->eu.mapa.col; j++) {
-			if (x > j * SQ_SZ && x < j * SQ_SZ + SQ_SZ && y > i && y < i * SQ_SZ + SQ_SZ) {
+			if (x > j * width && x < j * width + width && y > i && y < i * height + height) {
 				Jogada jog;
 				jog.lin = i;
 				jog.col = j;
@@ -65,7 +65,7 @@ ATOM RegistaClasse(HINSTANCE hInst, TCHAR* szWinName) {
 	wcl.hIcon = LoadIcon(hInst, IDI_APPLICATION);
 	wcl.hIconSm = LoadIcon(hInst, IDI_APPLICATION);
 	wcl.hCursor = LoadCursor(NULL, IDC_ARROW);
-	wcl.lpszMenuName = NULL;
+	wcl.lpszMenuName = MAKEINTRESOURCE(IDR_MENU1);
 	wcl.cbClsExtra = sizeof(TDados);
 	wcl.cbWndExtra = sizeof(TDados);
 	wcl.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
@@ -80,10 +80,10 @@ HWND CriarJanela(HINSTANCE hInst, TCHAR* szWinName) {
 		WS_OVERLAPPEDWINDOW,
 		0,
 		0,
-		1000,
-		1000,
+		800,
+		600,
 		HWND_DESKTOP,
-		NULL,
+		(HMENU)0,
 		hInst,
 		NULL
 	);
@@ -117,17 +117,20 @@ DWORD WINAPI ThreadClienteReader(LPVOID param) {
 		dados->eu.mapa = FromServer.mapa;
 		dados->eu.agua = FromServer.agua;
 		dados->eu.aleatorio = FromServer.aleatorio;
+		dados->eu.nivel = FromServer.nivel;
 		//dados->eu.hPipe = FromServer.hPipe;
 		//dados->eu = FromServer;// Acho que é muito para assumir tudo como certo, vai dar override de certos valores
 		//InvalidateRect(dados->hWnd, NULL, FALSE);
 		if (FromServer.termina) {
 			_tprintf(TEXT("Recebi uma mensagem: %s\n"), FromServer.mensagem);
-			eu->termina = true;
+			MessageBox(dados->hWnd, TEXT("O Servidor terminou."), TEXT("Fechar"), MB_OK);
+			dados->eu.termina = true;
+			SetEvent(event);
 			break;
 		}
 		if (_tcsicmp(FromServer.mensagem, TEXT("GANHOU")) == 0) {
 			if (MessageBox(dados->hWnd, TEXT("Ganhou! Pretende Jogar de novo?"), TEXT("Jogar de novo"), MB_YESNO) == IDYES) {
-				_tcscpy_s(dados->eu.mensagem, 20, TEXT("REGISTO"));
+				_tcscpy_s(dados->eu.mensagem, 20, TEXT("NOVO"));
 				//dados->eu.individual = true;
 				SetEvent(event);
 			}
@@ -135,7 +138,6 @@ DWORD WINAPI ThreadClienteReader(LPVOID param) {
 		}
 		if (_tcsicmp(FromServer.mensagem, TEXT("JOGADA")) == 0) {
 			InvalidateRect(dados->hWnd, NULL, FALSE);
-
 		}
 		if (_tcsicmp(FromServer.mensagem, TEXT("AGUA")) == 0) {
 			InvalidateRect(dados->hWnd, NULL, FALSE);
@@ -149,6 +151,11 @@ DWORD WINAPI ThreadClienteReader(LPVOID param) {
 		if (_tcsicmp(FromServer.mensagem, TEXT("ALEATORIO")) == 0) {
 			dados->eu.aleatorio = FromServer.aleatorio;
 			SetEvent(event);
+		}
+		if (_tcsicmp(FromServer.mensagem, TEXT("TEMPO")) == 0) {
+			dados->eu.tempo = FromServer.tempo;
+			_tprintf(TEXT("Recebi uma mensagem: %d\n"), FromServer.tempo);
+			InvalidateRect(dados->hWnd, NULL, FALSE);
 		}
 		_tprintf(TEXT("Recebi uma mensagem: %s\n"), FromServer.mensagem);
 		//HDC hdc = GetDC(dados->hWnd);
@@ -190,6 +197,7 @@ DWORD WINAPI ThreadClienteWritter(LPVOID param) {
 		GetOverlappedResult(hPipe, &OverlWr, &cbWritten, FALSE);
 		_tprintf(TEXT("ESCREVI PARA O SERVIDOR!"));
 		if (eu->termina) {
+			_tprintf(TEXT("Dados->eu.termina: %d"), dados->eu.termina);
 			break;
 		}
 	}
@@ -252,6 +260,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	eu.moveRato = false;
 	dados.eu = eu;
 	dados.eu.hPipe = hPipe;
+	dados.eu.darkMode = false;
+	dados.eu.tempo = 0;
 
 	hThread[0] = CreateThread(NULL, 0, ThreadClienteReader, (LPVOID)&dados, 0, 0);
 	hThread[1] = CreateThread(NULL, 0, ThreadClienteWritter, (LPVOID)&dados, 0, 0);
@@ -273,7 +283,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	UpdateWindow(dados.hWnd);
 
 
-	while (GetMessage(&msg, NULL, 0, 0)) {
+	while (GetMessage(&msg, NULL, 0, 0) && !dados.eu.termina) {
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
@@ -405,7 +415,6 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 	POINTS p;
 	Cliente c;
 
-	static HBITMAP bmpPeca;
 	HBITMAP foto;
 	static HDC double_dc;
 	HDC auxdc;
@@ -420,40 +429,57 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 	static HBITMAP pecasAgua;
 	static HBITMAP barreira;
 
+	int width;
+	int height;
+
 	TDados* dados;
 	dados = (TDados*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 	//#define SQ_SZ 50/(dados->eu.mapa.lin*dados->eu.mapa.col)
 	//event = CreateEvent(NULL, FALSE, FALSE, TEXT("EVENTO"));
 	
+
+
 	bool g_fMouseTracking = FALSE;
 	switch (messg) {
 	case WM_CREATE:
 		pecas = LoadBitmap((HINSTANCE)GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_PECAS));
 		pecasAgua = LoadBitmap((HINSTANCE)GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_PECAS_AGUA));
 		barreira = LoadBitmap((HINSTANCE)GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_BARREIRA));
-		bmpPeca = LoadBitmap((HINSTANCE)GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_PECA_1));
 		break;
 	case WM_PAINT:
-
-			
 		hdc = BeginPaint(hWnd, &ps);
 
 		HDC memDC = CreateCompatibleDC(hdc);
-
 		RECT rcClientRect;
 		GetClientRect(hWnd, &rcClientRect);
 
 		HBITMAP bmp = CreateCompatibleBitmap(hdc, rcClientRect.right - rcClientRect.left,
 			rcClientRect.bottom - rcClientRect.top);
 
+
 		HBITMAP oldBmp = (HBITMAP)SelectObject(memDC, bmp);
-		dados->tempo = 5;
 		auxdc = CreateCompatibleDC(memDC);
+		if (!dados->eu.darkMode) {
+			FillRect(memDC, &rcClientRect, (HBRUSH)GetStockObject(WHITE_BRUSH));
+		}
+		else {
+			FillRect(memDC, &rcClientRect, (HBRUSH)GetStockObject(BLACK_BRUSH));
+		}
 		SelectObject(auxdc, pecas);
+
+		width = SQ_SZ / dados->eu.mapa.col;
+		height = SQ_SZ / dados->eu.mapa.lin;
+
 		for (int i = 0; i < dados->eu.mapa.lin; i++) {
 			for (int j = 0; j < dados->eu.mapa.col; j++) {
+
 				//SelectObject(auxdc, bmpPeca);
-				Rectangle(memDC, j * SQ_SZ, i * SQ_SZ, j * SQ_SZ + SQ_SZ, i * SQ_SZ + SQ_SZ);
+				if (dados->eu.darkMode) {
+					SelectObject(memDC, (HBRUSH)GetStockObject(BLACK_BRUSH));
+					HPEN hpenDot = CreatePen(PS_DOT, 1, RGB(255, 255, 255));
+					SelectObject(memDC, hpenDot);
+				}
+				Rectangle(memDC, j * width, i * height, j * width + width, i * height + height);
 				for (int k = 0; k < 2; k++) {
 					for (int l = 0; l < 4; l++) {
 						SelectObject(auxdc, pecas);
@@ -463,22 +489,33 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 							if (dados->eu.agua.board[i][j] == TEXT('w')) {
 								SelectObject(auxdc, pecasAgua);
 								//BitBlt(memDC, j * SQ_SZ, i * SQ_SZ, j * SQ_SZ + SQ_SZ, i * SQ_SZ + SQ_SZ, auxdc, l * 50, k * 50, SRCCOPY);
-								BitBlt(memDC, j * SQ_SZ, i * SQ_SZ, SQ_SZ, SQ_SZ, auxdc, l * 50, k * 50, SRCCOPY);
+								//BitBlt(memDC, j * width, i * height, width, height, auxdc, l * 50, k * 50, SRCCOPY);
+								StretchBlt(memDC, j * width, i * height, width, height, auxdc, l * 50, k * 50, 50, 50, SRCCOPY);
 								continue;
 							}
-							BitBlt(memDC, j * SQ_SZ, i * SQ_SZ, SQ_SZ, SQ_SZ, auxdc, l * 50, k * 50, SRCCOPY);
+							//BitBlt(memDC, j * width, i * height, width, height, auxdc, l * 50, k * 50, SRCCOPY);
+							StretchBlt(memDC, j * width, i * height, width, height, auxdc, l * 50, k * 50, 50, 50, SRCCOPY);
 							continue;
 						}
 						if (dados->eu.mapa.board[i][j] == TEXT('|')) {
 							SelectObject(auxdc, barreira);
-							BitBlt(memDC, j * SQ_SZ, i * SQ_SZ, SQ_SZ, SQ_SZ, auxdc, 0, 0, SRCCOPY);
+							BitBlt(memDC, j * width, i * height, width, height, auxdc, l * 50, k * 50, SRCCOPY);
 							continue;
 						}
 					}
 				}
 			}
 		}
-
+		TCHAR tempo[50];
+		TCHAR aleatorio[50];
+		TCHAR nivel[50];
+		int st = dados->eu.aleatorio;
+		_stprintf_s(tempo, 50, TEXT("Segundos para começar: %d"), dados->eu.tempo);
+		TextOut(memDC, 600, 100, tempo, _tcslen(tempo));
+		_stprintf_s(aleatorio, 50, TEXT("Modo aleatório: %s"), status[st]);
+		TextOut(memDC, 600, 200, aleatorio, _tcslen(aleatorio));
+		_stprintf_s(nivel, 50, TEXT("Nível: %d"), dados->eu.nivel);
+		TextOut(memDC, 600, 300, nivel, _tcslen(nivel));
 		BitBlt(hdc, 0, 0, rcClientRect.right - rcClientRect.left,
 			rcClientRect.bottom - rcClientRect.top, memDC, 0, 0, SRCCOPY);
 
@@ -495,32 +532,64 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		PostQuitMessage(0);
 		break;
 	case WM_COMMAND:
-		//_stprintf_s(msg, 100, TEXT("%d"), wParam);
-		//TextOut(hdc, 500, 500, msg, _tcslen(msg));
+		if (LOWORD(wParam) == ID_DARK_MODE && dados->eu.darkMode == false) {
+			pecas = LoadBitmap((HINSTANCE)GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_PECAS_DARK));
+			pecasAgua = LoadBitmap((HINSTANCE)GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_PECAS_AGUA_DARK));
+			dados->eu.darkMode = true;
+			InvalidateRect(hWnd, NULL, TRUE);
+		}
+		if (LOWORD(wParam) == ID_LIGHT_MODE && dados->eu.darkMode == true) {
+			pecas = LoadBitmap((HINSTANCE)GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_PECAS));
+			pecasAgua = LoadBitmap((HINSTANCE)GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_PECAS_AGUA));
+			dados->eu.darkMode = false;
+			InvalidateRect(hWnd, NULL, TRUE);
+		}
 		break;
 	case WM_LBUTTONDOWN:
 		p.x = GET_X_LPARAM(lParam);
 		p.y = GET_Y_LPARAM(lParam);
 
-		rect = getSquare(dados, p.x, p.y);
-
+		width = SQ_SZ / dados->eu.mapa.col;
+		height = SQ_SZ / dados->eu.mapa.lin;
+		rect = getSquare(dados, p.x, p.y, width, height);
+		if (rect.col == -1 || rect.lin == -1) {
+			break;
+		}
 		//_stprintf_s(msg, 100, TEXT("%d"), rect);
 
 		for (int i = 0; i < 2; i++) {
 			for (int j = 0; j < 4; j++) {
-				if (dados->eu.mapa.board[rect.lin][rect.col] == pecasText[i][j]) {
+				if (dados->eu.mapa.board[rect.lin][rect.col] == pecasText[i][j]){
+					if (pecasText[i][j] != TEXT('i') && pecasText[i][j] != TEXT('f') && dados->eu.agua.board[rect.lin][rect.col] != TEXT('w')) {
+						if (!dados->eu.aleatorio) {
+							dados->eu.peca = getProxPeca(pecasText[i][j]);
+						}
+						else {
+							dados->eu.peca = getRandomPeca();
+						}
+						//_tprintf(TEXT("\n%c\n"), dados->eu.peca);
+						dados->eu.x = rect.lin;
+						dados->eu.y = rect.col;
+						_tcscpy_s(dados->eu.mensagem, 20, TEXT("MUDAR"));
+						SetEvent(event);
+						return;
+					}
+					else {
+						break;
+					}
+				}
+				else if(dados->eu.mapa.board[rect.lin][rect.col] == TEXT('□')) {
+					_tprintf(TEXT("peca: %c\n"), dados->eu.mapa.board[rect.lin][rect.col]);
+					dados->eu.x = rect.lin;
+					dados->eu.y = rect.col;
+					_tcscpy_s(dados->eu.mensagem, 20, TEXT("JOGADA"));
 					if (!dados->eu.aleatorio) {
-						dados->eu.peca = getProxPeca(pecasText[i][j]);
+						dados->eu.peca = getProxPeca(pecasText[0][0]);
 					}
 					else {
 						dados->eu.peca = getRandomPeca();
 					}
-					//_tprintf(TEXT("\n%c\n"), dados->eu.peca);
-					dados->eu.x = rect.lin;
-					dados->eu.y = rect.col;
-					_tcscpy_s(dados->eu.mensagem, 20, TEXT("MUDAR"));
 					SetEvent(event);
-					return;
 				}
 			}
 		}
@@ -530,22 +599,24 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		//	_tprintf(TEXT("%d\n"), rect);
 		//	InvalidateRect(hWnd, NULL, FALSE);
 		//}
-		dados->eu.x = rect.lin;
-		dados->eu.y = rect.col;
-		_tcscpy_s(dados->eu.mensagem, 20, TEXT("JOGADA"));
-		if (!dados->eu.aleatorio) {
-			dados->eu.peca = getProxPeca(pecasText[0][0]);
-		}
-		else {
-			dados->eu.peca = getRandomPeca();
-		}
-		SetEvent(event);
+		//dados->eu.x = rect.lin;
+		//dados->eu.y = rect.col;
+		//_tcscpy_s(dados->eu.mensagem, 20, TEXT("JOGADA"));
+		//if (!dados->eu.aleatorio) {
+		//	dados->eu.peca = getProxPeca(pecasText[0][0]);
+		//}
+		//else {
+		//	dados->eu.peca = getRandomPeca();
+		//}
+		//SetEvent(event);
 		break;
 	case WM_RBUTTONDOWN:
 		p.x = GET_X_LPARAM(lParam);
 		p.y = GET_Y_LPARAM(lParam);
+		width = SQ_SZ / dados->eu.mapa.col;
+		height = SQ_SZ / dados->eu.mapa.lin;
 
-		rect = getSquare(dados, p.x, p.y);
+		rect = getSquare(dados, p.x, p.y, width, height);
 		
 		if (dados->eu.mapa.board[rect.lin][rect.col] != TEXT('□')) {
 			dados->eu.peca = TEXT('□');

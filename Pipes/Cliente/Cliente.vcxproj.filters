@@ -33,34 +33,22 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\..\..\Downloads\peca-1.bmp">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\..\..\..\Downloads\peca-2.bmp">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\..\..\..\Downloads\peca-6.bmp">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\..\..\..\Downloads\peca-5.bmp">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\..\..\..\Downloads\peca-4.bmp">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\..\..\..\Downloads\peca-3.bmp">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\..\..\..\downloads\bitmap1.bmp">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\..\..\..\Downloads\pecas.bmp">
-      <Filter>Resource Files</Filter>
-    </Image>
     <Image Include="..\..\..\..\Downloads\pecas_agua.bmp">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="..\..\..\..\Downloads\barreira.bmp">
+    <Image Include="img\pecas.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="img\pecas_agua.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="img\barreira.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="img\pecas_dark.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="img\pecas_agua_dark.bmp">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
