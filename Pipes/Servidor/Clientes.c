@@ -9,6 +9,7 @@ HANDLE WriteReady;
 void iniciaClientes(TDados* dados) {
 	for (int i = 0; i < MAX_CLI; i++) {
 		dados->ptr_memoria->clientes[i].hPipe = NULL;
+		dados->ptr_memoria->clientes[i].individual = true;
 	}
 }
 
@@ -57,6 +58,7 @@ void printClientes(TDados* dados) {
 	for (int i = 0; i < dados->ptr_memoria->nClientes; i++) {
 		_tprintf(TEXT("Nome: %s\n"), dados->ptr_memoria->clientes[i].nome);
 		_tprintf(TEXT("Nível: %d\n"), dados->ptr_memoria->clientes[i].nivel);
+		_tprintf(TEXT("Modo de jogo: %d"), dados->ptr_memoria->clientes[i].individual);
 		_tprintf(TEXT("Mapa atual:\n"));
 		printMapa(dados->ptr_memoria->clientes[i].mapa);
 	}

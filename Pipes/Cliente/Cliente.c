@@ -103,7 +103,7 @@ DWORD WINAPI ThreadClienteReader(LPVOID param) {
 	TCHAR msg[100];
 	ReadReady = CreateEvent(NULL, TRUE, FALSE, NULL);
 	_tprintf(TEXT("THREAD PARA OUVIR DO SERVIDOR LANÇADA!\n"));
-	while (!eu->termina) {
+	while (!dados->eu.termina) {
 		ZeroMemory(&OverlRd, sizeof(OverlRd));
 		OverlRd.hEvent = ReadReady;
 		ResetEvent(ReadReady);
@@ -122,7 +122,12 @@ DWORD WINAPI ThreadClienteReader(LPVOID param) {
 		//dados->eu = FromServer;// Acho que é muito para assumir tudo como certo, vai dar override de certos valores
 		//InvalidateRect(dados->hWnd, NULL, FALSE);
 		if (FromServer.termina) {
-			_tprintf(TEXT("Recebi uma mensagem: %s\n"), FromServer.mensagem);
+			if (_tcsicmp(FromServer.mensagem, TEXT("TIMEOUT")) == 0) {
+				MessageBox(dados->hWnd, TEXT("Foi excluído por inatividade|"), TEXT("Fechar"), MB_OK);
+				dados->eu.termina = FromServer.termina;
+				SetEvent(event);
+				break;
+			}
 			MessageBox(dados->hWnd, TEXT("O Servidor terminou."), TEXT("Fechar"), MB_OK);
 			dados->eu.termina = true;
 			SetEvent(event);
@@ -151,6 +156,10 @@ DWORD WINAPI ThreadClienteReader(LPVOID param) {
 		if (_tcsicmp(FromServer.mensagem, TEXT("ALEATORIO")) == 0) {
 			dados->eu.aleatorio = FromServer.aleatorio;
 			SetEvent(event);
+		}
+		if (_tcsicmp(FromServer.mensagem, TEXT("ESPERAR")) == 0) {
+			MessageBox(dados->hWnd, TEXT("À espera de adversário"), TEXT("Esperar"), MB_OK);
+			//SetEvent(event);
 		}
 		if (_tcsicmp(FromServer.mensagem, TEXT("TEMPO")) == 0) {
 			dados->eu.tempo = FromServer.tempo;
@@ -185,7 +194,7 @@ DWORD WINAPI ThreadClienteWritter(LPVOID param) {
 	_stprintf_s(eventName, 20, TEXT("EVENTO %d"), result);
 	event = CreateEvent(NULL, FALSE, FALSE, eventName);
 	_tprintf(TEXT("HPIPE: %d\n"), hPipe);
-	while (!eu->termina) {
+	while (!dados->eu.termina) {
 		WaitForSingleObject(event, INFINITE);
 		ZeroMemory(&OverlWr, sizeof(OverlWr));
 		ResetEvent(WriteReady);

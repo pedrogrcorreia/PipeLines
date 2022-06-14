@@ -18,6 +18,7 @@
 #define BUFFER_CHAR 100
 #define MAX_LETTERS 20
 #define MAX_CLI 2
+#define HEART_BEAT 1000*15
 
 static TCHAR status[2][4] = { TEXT("Off"), TEXT("On") };
 
@@ -83,6 +84,12 @@ typedef struct {
 	int nClientes;
 } Memoria;
 
+typedef struct {
+	Cliente jogadores[MAX_CLI];
+	int nJogadores;
+	HANDLE event_comp;
+} Competicao;
+
 // Estrutura auxiliar para enviar os dados para as Threads
 typedef struct {
 	Memoria* ptr_memoria;
@@ -99,5 +106,7 @@ typedef struct {
 	int lin;
 	int col;
 	Jogo jogo;
+	Competicao comp;
 	//Cliente clientes[MAX_CLI];
 } TDados;
+

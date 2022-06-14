@@ -209,9 +209,12 @@ DWORD WINAPI moveAgua(LPVOID param) {
 		c.mapa = dados->ptr_memoria->clientes[nCliente].mapa;
 		c.tempo = dados->tempo - i;
 		_tprintf(TEXT("A dormir..\n"));
+		if (dados->ptr_memoria->clientes[nCliente].termina) {
+			break;
+		}
 		writeClienteASINC(dados->ptr_memoria->clientes[nCliente].hPipe, c);
 	}
-	
+
 	int i = 0;
 	dados->jogo.atualizar = true;
 	Agua agua;
@@ -222,7 +225,7 @@ DWORD WINAPI moveAgua(LPVOID param) {
 	//_tprintf(TEXT("nCliente: %d\n"), nCliente);
 	//agua.mapa = dados->ptr_memoria->mapas[nCliente];
 	agua.mapa = dados->ptr_memoria->clientes[nCliente].mapa;
-	do {
+	while(!dados->ptr_memoria->clientes[nCliente].termina){//do {
 		//Cliente c;
 		// Esperar pelo mutex que pode estar a suspender a água
 		DWORD result = WaitForSingleObject(dados->mutex_agua, INFINITE);
@@ -272,9 +275,125 @@ DWORD WINAPI moveAgua(LPVOID param) {
 		// Libertar mutex
 		ReleaseMutex(dados->mutex_agua);
 		ReleaseMutex(dados->ptr_memoria->clientes[nCliente].mutexAgua);
-	} while (!dados->ptr_memoria->clientes[nCliente].termina);
+	} //while (!dados->ptr_memoria->clientes[nCliente].termina);
 	_tprintf(TEXT("Thread para movimentar a água concluída...\n"));
 	//dados->ptr_memoria->nClientes--; // limpar o mapa
+}
+
+DWORD WINAPI moveAguaCompeticao(LPVOID param) {
+	TDados* dados = (TDados*)param;
+	_tprintf(TEXT("Thread para mover a água da competicao lançada.\n"));
+	_tprintf(TEXT("NOME: %s"), dados->ptr_memoria->clientes[0].nome);
+	Cliente c;
+	for (int i = 0; i < MAX_CLI; i++) {
+		c.termina = false;
+		c.mapa = dados->ptr_memoria->clientes[i].mapa;
+		c.agua = dados->ptr_memoria->clientes[i].agua;
+		c.aleatorio = dados->ptr_memoria->clientes[i].aleatorio;
+		c.nivel = dados->ptr_memoria->clientes[i].nivel;
+	}
+	for (int i = 1; i <= dados->tempo; i++) {
+		Sleep(1000);
+		for (int nCliente = 0; nCliente < MAX_CLI; nCliente++) {
+			_tcscpy_s(c.mensagem, 20, TEXT("TEMPO"));
+
+			c.mapa = dados->ptr_memoria->clientes[nCliente].mapa;
+			c.tempo = dados->tempo - i;
+			_tprintf(TEXT("A dormir..\n"));
+			if (dados->ptr_memoria->clientes[nCliente].termina) {
+				break;
+			}
+			writeClienteASINC(dados->ptr_memoria->clientes[nCliente].hPipe, c);
+		}
+	}
+
+	int i = 0;
+	dados->jogo.atualizar = true;
+	Agua agua[2];
+
+	agua[0].prox_lin = 0;
+	agua[0].prox_col = 0;
+	agua[1].prox_lin = 0;
+	agua[1].prox_col = 0;
+	//_tprintf(TEXT("nCliente: %d\n"), nCliente);
+	//agua.mapa = dados->ptr_memoria->mapas[nCliente];
+	for (int nCliente = 0; nCliente < MAX_CLI; nCliente++) {
+		agua[nCliente].mapa = dados->ptr_memoria->clientes[nCliente].mapa;
+	}
+	while (!dados->ptr_memoria->terminar) {//do {
+		//Cliente c;
+		// Esperar pelo mutex que pode estar a suspender a água
+		DWORD result = WaitForSingleObject(dados->mutex_agua, INFINITE);
+		result = WaitForSingleObject(dados->ptr_memoria->clientes[0].mutexAgua, INFINITE);
+		result = WaitForSingleObject(dados->ptr_memoria->clientes[1].mutexAgua, INFINITE);
+
+		for (int i = 0; i < MAX_CLI; i++) {
+			if (agua[i].prox_lin >= dados->ptr_memoria->clientes[i].mapa.lin) {
+				_tcscpy_s(c.mensagem, 20, TEXT("GANHOU"));
+				writeClienteASINC(dados->ptr_memoria->clientes[i].hPipe, c);
+				break;
+			}
+			if (agua[i].prox_col >= dados->ptr_memoria->clientes[i].mapa.col) {
+				_tcscpy_s(c.mensagem, 20, TEXT("GANHOU"));
+				writeClienteASINC(dados->ptr_memoria->clientes[i].hPipe, c);
+				break;
+			}
+			agua[i] = moverAgua(agua[i], agua[i].prox_lin, agua[i].prox_col);
+			dados->ptr_memoria->clientes[i].agua = agua[i].mapa;
+			_tprintf(TEXT("Agua a mexer no cliente %d...\n"), i);
+
+			c.agua = agua[i].mapa;
+			c.mapa = dados->ptr_memoria->clientes[i].mapa;
+			//printMapa(c.mapa);
+			c.termina = false;
+			_tcscpy_s(c.mensagem, 20, TEXT("AGUA"));
+			if (!dados->ptr_memoria->clientes[i].termina) {
+				writeClienteASINC(dados->ptr_memoria->clientes[i].hPipe, c);
+			}
+			ReleaseMutex(dados->ptr_memoria->clientes[i].mutexAgua);
+		}
+		//Atualizar o monitor...
+		SetEvent(dados->event_atualiza);
+		Sleep(1000); // Sleep de 1 segundo para a água não correr rápido demais
+		//Sleep((11 - dados->ptr_memoria->clientes[nCliente].nivel) * 1000); // decresce 1 segundo por nivel a velocidade da agua
+		// Libertar mutex
+		ReleaseMutex(dados->mutex_agua);
+		//for (int nCliente = 0; nCliente < MAX_CLI; nCliente++) {
+		//	ReleaseMutex(dados->ptr_memoria->clientes[nCliente].mutexAgua);
+		//}
+	} //while (!dados->ptr_memoria->clientes[nCliente].termina);
+	_tprintf(TEXT("Thread para movimentar a água da competição concluída...\n"));
+	//dados->ptr_memoria->nClientes--; // limpar o mapa
+}
+
+DWORD WINAPI competicaoThread(LPVOID param) {
+	TDados* dados = (TDados*)param;
+
+	dados->comp.event_comp = CreateEvent(NULL, FALSE, FALSE, NULL);
+	dados->comp.nJogadores = 0;
+	Cliente c;
+	c.termina = false;
+	do {
+		dados->comp.nJogadores = 0;
+		WaitForSingleObject(dados->comp.event_comp, INFINITE);
+		for (int i = 0; i < MAX_CLI; i++) {
+			if (dados->ptr_memoria->clientes[i].individual == false) {
+				dados->comp.nJogadores++;
+			}
+		}
+		if (dados->comp.nJogadores == 2) {
+			HANDLE hThread = CreateThread(NULL, 0, moveAguaCompeticao, (LPVOID)dados, 0, NULL);
+		}
+		else {
+			_tprintf(TEXT("jogadores: %d\n"), dados->comp.nJogadores);
+			for (int i = 0; i < dados->ptr_memoria->nClientes; i++) {
+				if (dados->ptr_memoria->clientes[i].individual == false) {
+					_tcscpy_s(c.mensagem, 20, TEXT("ESPERAR"));
+					writeClienteASINC(dados->ptr_memoria->clientes[i].hPipe, c);
+				}
+			}
+		}
+	} while (!dados->ptr_memoria->terminar);
 }
 
 DWORD WINAPI ClienteThread(LPVOID param) {
@@ -291,16 +410,7 @@ DWORD WINAPI ClienteThread(LPVOID param) {
 	ReadReady = CreateEvent(NULL, TRUE, FALSE, NULL);
 
 	int nCliente = adicionaCliente(dados, hPipe);
-	_tprintf(TEXT("HPIPE ANTES: %d\n"), hPipe);
-	//int nCliente = -1;
-	//for (int i = 0; i < dados->ptr_memoria->nClientes; i++) {
-	//	if (dados->ptr_memoria->clientes[i].hPipe == hPipe) {
-	//		nCliente = i;
-	//		break;
-	//	}
-	//}
-	_tprintf(TEXT("NCLINETE: %d\n"), nCliente);
-	printClientes(dados);
+
 	enviado.hPipe = hPipe;
 	enviado.termina = false;
 	enviado.aleatorio = dados->jogo.aleatorio;
@@ -317,9 +427,17 @@ DWORD WINAPI ClienteThread(LPVOID param) {
 
 		fSuccess = ReadFile(hPipe, &recebido, Cl_Sz, &cbBytesRead, &OverlRd);
 	
-		WaitForSingleObject(ReadReady, INFINITE);
-		_tprintf(TEXT("HPIPE DEPOIS: %d\n"), hPipe);
-		_tprintf(TEXT("NCLINETE: %d\n"), nCliente);
+		result = WaitForSingleObject(ReadReady, INFINITE); // MUDAR PARA HEARTBEAT
+		if (result == WAIT_TIMEOUT) {
+			_tcscpy_s(enviado.mensagem, 20, TEXT("TIMEOUT"));
+			enviado.mapa = dados->ptr_memoria->clientes[nCliente].mapa;
+			enviado.agua = dados->ptr_memoria->clientes[nCliente].agua;
+			enviado.termina = true;
+			dados->ptr_memoria->clientes[nCliente].termina = true;
+			writeClienteASINC(hPipe, enviado);
+			removeCliente(dados, hPipe);
+			break;
+		}
 		_tprintf(TEXT("Recebida mensagem do cliente %s: %s pelo pipe %d\n"), recebido.nome, recebido.mensagem, dados->ptr_memoria->clientes[nCliente].hPipe);
 		//HANDLE hThread = CreateThread(NULL, 0, moveAgua, &dados, 0, NULL);
 		recebido.hPipe = hPipe;
@@ -336,7 +454,8 @@ DWORD WINAPI ClienteThread(LPVOID param) {
 				comecaIndividual(dados, hPipe);
 			}
 			else {
-				//comecaCompeticao(dados, hPipe);
+				dados->ptr_memoria->clientes[nCliente].individual = false;
+				SetEvent(dados->comp.event_comp);
 			}
 			continue;
 		}
@@ -661,7 +780,7 @@ int _tmain(int argc, LPTSTR argv[]) {
 	dados.ptr_memoria->clientes[0].event_rato = CreateEvent(NULL, FALSE, FALSE, TEXT("EVENT_RATO_CLIENTE_1"));
 	dados.ptr_memoria->clientes[1].event_rato = CreateEvent(NULL, FALSE, FALSE, TEXT("EVENT_RATO_CLIENTE_2"));
 
-	HANDLE hThread[3];
+	HANDLE hThread[4];
 	/* Thread para receber comandos do Monitor */
 	hThread[0] = CreateThread(NULL, 0, recebeComandos, &dados, 0, NULL);
 
@@ -674,8 +793,10 @@ int _tmain(int argc, LPTSTR argv[]) {
 	/* Thread para receber clientes */
 	hThread[2] = CreateThread(NULL, 0, recebeClientes, &dados, 0, NULL);
 
+	hThread[3] = CreateThread(NULL, 0, competicaoThread, &dados, 0, NULL);
+
 	/* Esperar que uma das threads termine para terminar o processo */
-	WaitForMultipleObjects(3, hThread, FALSE, INFINITE);
+	WaitForMultipleObjects(4, hThread, FALSE, INFINITE);
 
 	// Terminar todos os processos que estejam à espera
 	dados.ptr_memoria->terminar = true;
