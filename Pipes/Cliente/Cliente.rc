@@ -50,15 +50,14 @@ END
 // Dialog
 //
 
-IDD_NAME DIALOGEX 0, 0, 345, 210
+IDD_NAME DIALOGEX 0, 0, 245, 138
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Jogador"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    EDITTEXT        IDC_EDIT_NAME,139,52,93,18,ES_AUTOHSCROLL
-    LTEXT           "Nome:",IDC_STATIC,97,54,27,17
-    PUSHBUTTON      "Individual",IDC_BUTTON_IND,110,159,50,14
-    PUSHBUTTON      "Competitivo",IDC_BUTTON_COMP,181,159,50,14
+    EDITTEXT        IDC_EDIT_NAME,88,45,93,18,ES_AUTOHSCROLL
+    LTEXT           "Nome:",IDC_STATIC,54,48,27,17
+    PUSHBUTTON      "OK",IDC_BUTTON_OK,84,95,50,14
 END
 
 
@@ -73,9 +72,9 @@ BEGIN
     IDD_NAME, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 338
+        RIGHTMARGIN, 238
         TOPMARGIN, 7
-        BOTTOMMARGIN, 203
+        BOTTOMMARGIN, 131
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -115,7 +114,12 @@ IDB_PECAS_AGUA_DARK     BITMAP                  "img\\pecas_agua_dark.bmp"
 
 IDR_MENU1 MENU
 BEGIN
-    POPUP "Jogo"
+    POPUP "Novo Jogo"
+    BEGIN
+        MENUITEM "Individual",                  ID_INDIVIDUAL
+        MENUITEM "Competição",                  ID_COMPETICAO
+    END
+    POPUP "Opções"
     BEGIN
         POPUP "Peças"
         BEGIN

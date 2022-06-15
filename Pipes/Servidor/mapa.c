@@ -4,6 +4,7 @@
 #include <io.h>
 #include <stdio.h>
 #include <time.h>
+#include <stdbool.h>
 #include "../Mapa.h"
 
 Mapa criaMapa(Mapa mapa) {
@@ -14,10 +15,8 @@ Mapa criaMapa(Mapa mapa) {
 	}
 
 	srand((unsigned int)time(NULL));
-	int ini = (rand() % (mapa.lin - 0)) + 0;
-	int fin = (rand() % (mapa.lin - 0)) + 0;
-	//_tprintf(TEXT("%d %d\n"), ini, fin);
-
+	int ini = (rand() % ((mapa.lin-1) - 0)) + 0;
+	int fin = (rand() % ((mapa.lin-1) - 1 + 1)) + 1;
 	/* Coluna 0 e Linha random*/
 	mapa.board[ini][0] = TEXT('i');
 
@@ -62,7 +61,7 @@ void printMapa(Mapa mapa) {
 	}
 }
 
-Agua moverAgua(Agua agua, int lin, int col) {
+Agua moverAguaDebug(Agua agua, int lin, int col) {
 	// Coloca água na peça
 	//agua.mapa.board[lin][col] = 'w';
 	_tprintf(TEXT("%d %d\n"), lin, col);
@@ -129,29 +128,249 @@ Agua moverAgua(Agua agua, int lin, int col) {
 	return agua;
 }
 
+
+Agua moverAgua(Agua agua, int lin, int col) {
+	_tprintf(TEXT("%d %d\n"), lin, col);
+	agua.atual_lin = lin;
+	agua.atual_col = col;
+	//Peça f - acaba o jogo
+	if (agua.mapa.board[lin][col] == TEXT('f')) {
+		agua.mapa.board[lin][col] = TEXT('w');
+		agua.ganhou = true;
+		agua.prox_lin = lin + 1;
+		agua.prox_col = col;
+		return agua;
+	}
+
+	// Peça i - Verifica em cima
+	if (agua.mapa.board[lin][col] == TEXT('i')) {
+		agua.mapa.board[lin][col] = TEXT('w');
+		if (agua.mapa.board[lin][col + 1] == TEXT('□') || agua.mapa.board[lin][col + 1] == pecasText[0][0] ||
+			agua.mapa.board[lin][col + 1] == pecasText[1][0] || agua.mapa.board[lin][col + 1] == pecasText[1][1]) {
+			agua.perdeu = true;
+			return agua;
+		}
+		else {
+			agua.prox_lin = lin;
+			agua.prox_col = col + 1;
+			return agua;
+		}
+	}
+
+
+	if (agua.mapa.board[lin][col] == TEXT('━')) {
+		agua.mapa.board[lin][col] = TEXT('w');
+
+		// Verifica da direita para a esquerda
+		if (agua.mapa.board[lin][col + 1] == TEXT('w')) {
+			if (agua.mapa.board[lin][col - 1] == TEXT('□') || agua.mapa.board[lin][col - 1] == pecasText[0][0] || 
+				agua.mapa.board[lin][col - 1] == pecasText[0][2] || agua.mapa.board[lin][col - 1] == pecasText[1][2]) {
+				agua.perdeu = true;
+				return agua;
+			}
+			else {
+				agua.prox_lin = lin;
+				agua.prox_col = col - 1;
+				return agua;
+			}
+		}
+		// Verifica da esquerda para a direita
+		else {
+			if (agua.mapa.board[lin][col +1] == TEXT('□') || agua.mapa.board[lin][col +1] == pecasText[0][0] ||
+				agua.mapa.board[lin][col +1] == pecasText[1][0] || agua.mapa.board[lin][col +1] == pecasText[1][1]) {
+				agua.perdeu = true;
+				return agua;
+			}
+			else {
+				agua.prox_lin = lin;
+				agua.prox_col = col + 1;
+				return agua;
+			}
+		}
+	}
+
+	if (agua.mapa.board[lin][col] == TEXT('┃')) {
+		agua.mapa.board[lin][col] = TEXT('w');
+
+		// Verifica de baixo para cima
+		if (agua.mapa.board[lin+1][col] == TEXT('w')) {
+			if (agua.mapa.board[lin - 1][col] == TEXT('□') || agua.mapa.board[lin - 1][col] == pecasText[0][1] ||
+				agua.mapa.board[lin - 1][col] == pecasText[0][2] || agua.mapa.board[lin - 1][col] == pecasText[1][0]) {
+				agua.perdeu = true;
+				return agua;
+			}
+			else {
+				agua.prox_lin = lin - 1;
+				agua.prox_col = col;
+				return agua;
+			}
+		}
+		// Verifica de cima para baixo
+		else {
+			if (agua.mapa.board[lin + 1][col] == TEXT('□') || agua.mapa.board[lin + 1][col] == pecasText[0][1] ||
+				agua.mapa.board[lin + 1][col] == pecasText[1][1] || agua.mapa.board[lin + 1][col] == pecasText[1][2]) {
+				agua.perdeu = true;
+				return agua;
+			}
+			else {
+				agua.prox_lin = lin + 1;
+				agua.prox_col = col;
+				return agua;
+			}
+		}
+	}
+
+
+	if (agua.mapa.board[lin][col] == TEXT('┏')) {
+		agua.mapa.board[lin][col] = TEXT('w');
+
+		// Verifica de cima para baixo
+		if (agua.mapa.board[lin][col - 1] == TEXT('w')) {
+			if (agua.mapa.board[lin + 1][col] == TEXT('□') || agua.mapa.board[lin + 1][col] == pecasText[0][1] ||
+				agua.mapa.board[lin + 1][col] == pecasText[1][1] || agua.mapa.board[lin + 1][col] == pecasText[1][2]) {
+				agua.perdeu = true;
+				return agua;
+			}
+			else {
+				agua.prox_lin = lin + 1;
+				agua.prox_col = col;
+				return agua;
+			}
+		}
+		// Verifica de baixo para cima
+		else {
+			if (agua.mapa.board[lin][col + 1] == TEXT('□') || agua.mapa.board[lin][col + 1] == pecasText[0][0] ||
+				agua.mapa.board[lin][col + 1] == pecasText[1][0] || agua.mapa.board[lin][col + 1] == pecasText[1][1]) {
+				agua.perdeu = true;
+				return agua;
+			}
+			else {
+				agua.prox_lin = lin;
+				agua.prox_col = col + 1;
+				return agua;
+			}
+		}
+	}
+
+	
+	if (agua.mapa.board[lin][col] == TEXT('┛')) {
+		agua.mapa.board[lin][col] = TEXT('w');
+
+		// Verifica de baixo para cima
+		if (agua.mapa.board[lin][col - 1] == TEXT('w')) {
+			if (agua.mapa.board[lin - 1][col] == TEXT('□') || agua.mapa.board[lin - 1][col] == pecasText[0][1] ||
+				agua.mapa.board[lin - 1][col] == pecasText[0][2] || agua.mapa.board[lin - 1][col] == pecasText[1][0]) {
+				agua.perdeu = true;
+				return agua;
+			}
+			else {
+				agua.prox_lin = lin - 1;
+				agua.prox_col = col;
+				return agua;
+			}
+		}
+		// Verifica de cima para baixo
+		else {
+			if (agua.mapa.board[lin][col - 1] == TEXT('□') || agua.mapa.board[lin][col - 1] == pecasText[0][0] || 
+				agua.mapa.board[lin][col - 1] == pecasText[0][2] || agua.mapa.board[lin][col - 1] == pecasText[1][2]) {
+				agua.perdeu = true;
+				return agua;
+			}
+			else {
+				agua.prox_lin = lin;
+				agua.prox_col = col - 1;
+				return agua;
+			}
+		}
+	}
+
+
+	if (agua.mapa.board[lin][col] == TEXT('┓')) {
+		agua.mapa.board[lin][col] = TEXT('w');
+		// Verifica de cima para baixo
+		if (agua.mapa.board[lin + 1][col] == TEXT('w')) {
+			if (agua.mapa.board[lin][col - 1] == TEXT('□') || agua.mapa.board[lin][col - 1] == pecasText[0][0] || 
+				agua.mapa.board[lin][col - 1] == pecasText[0][2] || agua.mapa.board[lin][col - 1] == pecasText[1][2]) {
+				agua.perdeu = true;
+				return agua;
+			}
+			else {
+				agua.prox_lin = lin;
+				agua.prox_col = col - 1;
+				return agua;
+			}
+		}
+		// Verifica de baixo para cima
+		else {
+			if (agua.mapa.board[lin + 1][col] == TEXT('□') || agua.mapa.board[lin + 1][col] == pecasText[0][1] ||
+				agua.mapa.board[lin + 1][col] == pecasText[1][1] || agua.mapa.board[lin + 1][col] == pecasText[1][2]) {
+				agua.perdeu = true;
+				return agua;
+			}
+			else {
+				agua.prox_lin = lin + 1;
+				agua.prox_col = col;
+				return agua;
+			}
+		}
+	}
+
+	if (agua.mapa.board[lin][col] == TEXT('┗')) {
+		agua.mapa.board[lin][col] = TEXT('w');
+		// Verifica de cima para baixo
+		if (agua.mapa.board[lin][col + 1] == TEXT('w')) {
+			if (agua.mapa.board[lin - 1][col] == TEXT('□') || agua.mapa.board[lin - 1][col] == pecasText[0][1] || 
+				agua.mapa.board[lin - 1][col] == pecasText[0][2] || agua.mapa.board[lin - 1][col] == pecasText[1][0]) {
+				agua.perdeu = true;
+				return agua;
+			}
+			else {
+				agua.prox_lin = lin - 1;
+				agua.prox_col = col;
+				return agua;
+			}
+		}
+		// Verifica de baixo para cima
+		else {
+			if (agua.mapa.board[lin][col + 1] == TEXT('□') || agua.mapa.board[lin][col + 1] == pecasText[0][0] ||
+				agua.mapa.board[lin][col + 1] == pecasText[1][0] || agua.mapa.board[lin][col + 1] == pecasText[1][1]) {
+				agua.perdeu = true;
+				return agua;
+			}
+			else {
+				agua.prox_lin = lin;
+				agua.prox_col = col + 1;
+				return agua;
+			}
+		}
+	}
+
+	return agua;
+}
+
 Mapa jogaPeca(Mapa mapa, int lin, int col, TCHAR peca) {
 	mapa.board[lin][col] = peca;
 	return mapa;
+}
+
+Mapa atualizaAgua(Mapa mapa, Mapa agua) {
+	for (int i = 0; i < mapa.lin; i++) {
+		for (int j = 0; j < mapa.col; j++) {
+			if (agua.board[i][j] == TEXT('w')) {
+				continue;
+			}
+			else {
+				agua.board[i][j] = mapa.board[i][j];
+			}
+		}
+	}
+	return agua;
 }
 
 TCHAR getProxPeca(TCHAR piece) {
 	TCHAR* p;
 	p = pecasText;
 
-	//_tprintf(TEXT("PECA %s\n"), piece);
-	/*for (int i = 0; i < 8; i++) {
-		if (piece == *(p+i)) {
-			if (i <= 6) {
-				if (i == 2) {
-					return *(p + 4);
-				}
-				return *(p+i+1);
-			}
-			else {
-				return *(p+0);
-			}
-		}
-	}*/
 	for (int i = 0; i < 3; i++) {
 		if (piece == *(p + i)) {
 			if (i == 2) {
@@ -171,8 +390,11 @@ TCHAR getProxPeca(TCHAR piece) {
 }
 
 TCHAR getRandomPeca() {
-	srand(time(NULL));   // Initialization, should only be called once.
+	srand(time(NULL));
 	int r = rand() % 6;
 	TCHAR* p = pecasText;
+	if (r == 3) {
+		return *(p + r + 1); // para não ser a peça inicial
+	}
 	return *(p + r);
 }

@@ -19,3 +19,5 @@ void registaCliente(TDados* dados, Cliente c);
 void printClientes(TDados* dados);
 
 void removeCliente(TDados* dados, HANDLE hPipe);
+
+void resetCliente(TDados* dados, HANDLE hPipe);

@@ -50,6 +50,7 @@ typedef struct {
 	TCHAR peca;
 	Mapa mapa;
 	Mapa agua;
+	Agua aguaAtual;
 	bool aleatorio;
 	bool individual;
 	TCHAR nome[MAX_LETTERS];
@@ -88,6 +89,8 @@ typedef struct {
 	Cliente jogadores[MAX_CLI];
 	int nJogadores;
 	HANDLE event_comp;
+	Mapa mapa;
+	Mapa agua;
 } Competicao;
 
 // Estrutura auxiliar para enviar os dados para as Threads

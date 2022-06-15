@@ -21,7 +21,11 @@ typedef struct {
 typedef struct {
 	int prox_lin;
 	int prox_col;
+	int atual_lin;
+	int atual_col;
 	Mapa mapa;
+	bool perdeu;
+	bool ganhou;
 } Agua;
 
 // Criação de um mapa com posições iniciais random
@@ -35,6 +39,8 @@ void printMapa(Mapa mapa);
 
 // Movimentar a água pelos tubos
 Agua moverAgua(Agua agua, int lin, int col);
+
+Mapa atualizaAgua(Mapa mapa, Mapa agua);
 
 Mapa jogaPeca(Mapa mapa, int lin, int col, TCHAR peca);
 

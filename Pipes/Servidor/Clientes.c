@@ -73,3 +73,15 @@ void removeCliente(TDados* dados, HANDLE hPipe) {
 		}
 	}
 }
+
+void resetCliente(TDados* dados, HANDLE hPipe) {
+	for (int i = 0; i < MAX_CLI; i++) {
+		if (dados->ptr_memoria->clientes[i].hPipe == hPipe) {
+			dados->ptr_memoria->clientes[i].mapa = criaMapa(dados->ptr_memoria->clientes[i].mapa);
+			dados->ptr_memoria->clientes[i].agua = dados->ptr_memoria->clientes[i].mapa;
+			dados->ptr_memoria->clientes[i].nivel = 1;
+			dados->ptr_memoria->clientes[i].ajuda = 0;
+			return;
+		}
+	}
+}

@@ -9,7 +9,6 @@
 #include <strsafe.h>
 #include "resource.h"
 #include "..\util.h"
-//#include "..\mapa.h"
 
 #define SQ_SZ 500
 #define Cl_Sz sizeof(Cliente)
@@ -17,23 +16,6 @@
 
 HANDLE event; //DEBUG RETIRAR DEPOIS
 
-
-//int getSquare(TDados* dados, int x, int y) {
-//	for (int i = 0; i < dados->eu.mapa.lin; i++) {
-//		for (int j = 0; j < dados->eu.mapa.col; j++) {
-//			if (x > j * SQ_SZ && x < j * SQ_SZ + SQ_SZ && y > i && y < i * SQ_SZ + SQ_SZ) {
-//				return j + i * dados->eu.mapa.lin; // o 3 é o n de linhas
-//			}
-//		}
-//	}
-//	return -1;
-//	//if (x > 0 && x < 100 && y > 0 && y < 100) {
-//	//	return 1;
-//	//}
-//	//if (x > 100 && x < 200 && y > 0 && y < 100) {
-//	//	return 2;
-//	//}
-//}
 Jogada getSquare(TDados* dados, int x, int y, int width, int height) {
 	for (int i = 0; i < dados->eu.mapa.lin; i++) {
 		for (int j = 0; j < dados->eu.mapa.col; j++) {
@@ -118,6 +100,8 @@ DWORD WINAPI ThreadClienteReader(LPVOID param) {
 		dados->eu.agua = FromServer.agua;
 		dados->eu.aleatorio = FromServer.aleatorio;
 		dados->eu.nivel = FromServer.nivel;
+		dados->eu.individual = FromServer.individual;
+		dados->eu.aguaAtual = FromServer.aguaAtual;
 		//dados->eu.hPipe = FromServer.hPipe;
 		//dados->eu = FromServer;// Acho que é muito para assumir tudo como certo, vai dar override de certos valores
 		//InvalidateRect(dados->hWnd, NULL, FALSE);
@@ -134,12 +118,24 @@ DWORD WINAPI ThreadClienteReader(LPVOID param) {
 			break;
 		}
 		if (_tcsicmp(FromServer.mensagem, TEXT("GANHOU")) == 0) {
-			if (MessageBox(dados->hWnd, TEXT("Ganhou! Pretende Jogar de novo?"), TEXT("Jogar de novo"), MB_YESNO) == IDYES) {
-				_tcscpy_s(dados->eu.mensagem, 20, TEXT("NOVO"));
+			if (MessageBox(dados->hWnd, TEXT("Ganhou! Continuar a jogar?"), TEXT("Vitória"), MB_YESNO) == IDYES) {
+				_tcscpy_s(dados->eu.mensagem, 20, TEXT("CONTINUAR"));
 				//dados->eu.individual = true;
 				SetEvent(event);
 			}
-
+		}
+		if (_tcsicmp(FromServer.mensagem, TEXT("GANHOU COMP")) == 0) {
+			MessageBox(dados->hWnd, TEXT("Ganhou a competição!"), TEXT("Vitória"), MB_OK);
+		}
+		if (_tcsicmp(FromServer.mensagem, TEXT("PERDEU")) == 0) {
+			if (MessageBox(dados->hWnd, TEXT("Perdeu! Jogar de novo?"), TEXT("Derrota"), MB_YESNO) == IDYES) {
+				_tcscpy_s(dados->eu.mensagem, 20, TEXT("REGISTO"));
+				//dados->eu.individual = true;
+				SetEvent(event);
+			}
+		}
+		if (_tcsicmp(FromServer.mensagem, TEXT("PERDEU COMP")) == 0) {
+			MessageBox(dados->hWnd, TEXT("Perdeu a competição!"), TEXT("Derrota"), MB_OK);
 		}
 		if (_tcsicmp(FromServer.mensagem, TEXT("JOGADA")) == 0) {
 			InvalidateRect(dados->hWnd, NULL, FALSE);
@@ -155,7 +151,7 @@ DWORD WINAPI ThreadClienteReader(LPVOID param) {
 		}
 		if (_tcsicmp(FromServer.mensagem, TEXT("ALEATORIO")) == 0) {
 			dados->eu.aleatorio = FromServer.aleatorio;
-			SetEvent(event);
+			InvalidateRect(dados->hWnd, NULL, FALSE);
 		}
 		if (_tcsicmp(FromServer.mensagem, TEXT("ESPERAR")) == 0) {
 			MessageBox(dados->hWnd, TEXT("À espera de adversário"), TEXT("Esperar"), MB_OK);
@@ -167,10 +163,6 @@ DWORD WINAPI ThreadClienteReader(LPVOID param) {
 			InvalidateRect(dados->hWnd, NULL, FALSE);
 		}
 		_tprintf(TEXT("Recebi uma mensagem: %s\n"), FromServer.mensagem);
-		//HDC hdc = GetDC(dados->hWnd);
-		//_stprintf_s(msg, 100, TEXT("%d"), FromServer.mensagem);
-		//TextOut(hdc, 400, 400, msg, _tcslen(msg));
-		//InvalidateRect(dados->hWnd, NULL, TRUE);
 	}
 
 	CloseHandle(ReadReady);
@@ -193,7 +185,6 @@ DWORD WINAPI ThreadClienteWritter(LPVOID param) {
 	TCHAR eventName[20];
 	_stprintf_s(eventName, 20, TEXT("EVENTO %d"), result);
 	event = CreateEvent(NULL, FALSE, FALSE, eventName);
-	_tprintf(TEXT("HPIPE: %d\n"), hPipe);
 	while (!dados->eu.termina) {
 		WaitForSingleObject(event, INFINITE);
 		ZeroMemory(&OverlWr, sizeof(OverlWr));
@@ -206,7 +197,6 @@ DWORD WINAPI ThreadClienteWritter(LPVOID param) {
 		GetOverlappedResult(hPipe, &OverlWr, &cbWritten, FALSE);
 		_tprintf(TEXT("ESCREVI PARA O SERVIDOR!"));
 		if (eu->termina) {
-			_tprintf(TEXT("Dados->eu.termina: %d"), dados->eu.termina);
 			break;
 		}
 	}
@@ -311,80 +301,11 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	CloseHandle(hPipe);
 }
 
-
-//LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam) {
-//	HDC hdc = GetDC(hWnd);
-//	TCHAR msg[100];
-//	PAINTSTRUCT ps;
-//	POINTS p;
-//	Cliente c;
-//	event = CreateEvent(NULL, FALSE, FALSE, TEXT("EVENTO"));
-//	_tcscpy_s(c.nome, 20, TEXT("PEDRO CORREIA"));
-//
-//	TDados* dados;
-//	dados = (TDados*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
-//
-//
-//	switch (messg) {
-//	case WM_CREATE:
-//
-//		InvalidateRect(hWnd, NULL, true);
-//		break;
-//	case WM_PAINT:
-//		hdc = BeginPaint(hWnd, &ps);
-//		//for (int i = 0; i < 4; i++) {
-//		//	Rectangle(hdc, i * 10, 0, i * 10 + 10, 10);
-//		//}
-//		for (int i = 0; i < dados->eu.mapa.lin; i++) {
-//			for (int j = 0; j < dados->eu.mapa.col; j++) {
-//				Rectangle(hdc, j * SQ_SZ, i * SQ_SZ, j * SQ_SZ + SQ_SZ, i * SQ_SZ + SQ_SZ);
-//			}
-//		}
-//		/*Rectangle(hdc, 0, 0, 10, 10);
-//		Rectangle(hdc, 10, 0, 20, 10);
-//		Rectangle(hdc, 20, 0, 30, 10);
-//		Rectangle(hdc, 0, 10, 10, 20);
-//		Rectangle(hdc, 10, 10, 20, 20);
-//		Rectangle(hdc, 20, 10, 30, 20);*/
-//		EndPaint(hWnd, &ps);
-//		break;
-//	case WM_DESTROY:	// Destruir a janela e terminar o programa 
-//						// "PostQuitMessage(Exit Status)"		
-//		PostQuitMessage(0);
-//		break;
-//	case WM_COMMAND:
-//		_stprintf_s(msg, 100, TEXT("%d"), wParam);
-//		TextOut(hdc, 500, 500, msg, _tcslen(msg));
-//		break;
-//	case WM_LBUTTONDOWN:
-//
-//		p.x = GET_X_LPARAM(lParam);
-//		p.y = GET_Y_LPARAM(lParam);
-//
-//		int rect = getSquare(dados->eu.mapa, p.x, p.y);
-//		_tcscpy_s(dados->eu.nome, 20, TEXT("ZE LEITEIRO"));
-//		dados->eu.square = rect;
-//		/*_stprintf_s(msg, 100, TEXT("%d, %d"), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));*/
-//		_stprintf_s(msg, 100, TEXT("%d"), rect);
-//		TextOut(hdc, p.x, p.y, msg, _tcslen(msg));
-//		SetEvent(event);
-//		//ClienteWrite(c);
-//		break;
-//	default:
-//		// Neste exemplo, para qualquer outra mensagem (p.e. "minimizar","maximizar","restaurar")
-//		// não é efectuado nenhum processamento, apenas se segue o "default" do Windows
-//		return(DefWindowProc(hWnd, messg, wParam, lParam));
-//		break;  // break tecnicamente desnecessário por causa do return
-//	}
-//	return(0);
-//}
-
 static BOOL CALLBACK dNome(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam) {
 	TDados* dados;
 	HWND h;
 	h = GetParent(hWnd);
 
-	
 	dados = (TDados*)GetWindowLongPtr(h, GWLP_USERDATA);
 
 	switch (messg) {
@@ -392,20 +313,9 @@ static BOOL CALLBACK dNome(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam) 
 		EndDialog(hWnd, 0);
 		return TRUE;
 	case WM_COMMAND:
-		if (LOWORD(wParam) == IDC_BUTTON_IND) {
+		if (LOWORD(wParam) == IDC_BUTTON_OK) {
 			GetDlgItemText(hWnd, IDC_EDIT_NAME, dados->eu.nome, 20);
-			_tcscpy_s(dados->eu.mensagem, 20, TEXT("REGISTO"));
-			dados->eu.individual = true;
-			dados->eu.ajuda = 0;
-			SetEvent(event);
-			EndDialog(hWnd, 0);
-			return TRUE;
-		}
-		if (LOWORD(wParam) == IDC_BUTTON_COMP) {
-			GetDlgItemText(hWnd, IDC_EDIT_NAME, dados->eu.nome, 20);
-			_tcscpy_s(dados->eu.mensagem, 20, TEXT("REGISTO"));
-			dados->eu.individual = false;
-			dados->eu.ajuda = 0;
+			_tcscpy_s(dados->eu.mensagem, 20, TEXT("NOME"));
 			SetEvent(event);
 			EndDialog(hWnd, 0);
 			return TRUE;
@@ -431,9 +341,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 	int x = 0, y = 0;
 	p.x = 0; p.y = 0;
 
-	//int rect = 0;
 	Jogada rect;
-	//static HBITMAP pecas[6];
 	static HBITMAP pecas;
 	static HBITMAP pecasAgua;
 	static HBITMAP barreira;
@@ -443,8 +351,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 
 	TDados* dados;
 	dados = (TDados*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
-	//#define SQ_SZ 50/(dados->eu.mapa.lin*dados->eu.mapa.col)
-	//event = CreateEvent(NULL, FALSE, FALSE, TEXT("EVENTO"));
+
 	
 
 
@@ -508,7 +415,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 						}
 						if (dados->eu.mapa.board[i][j] == TEXT('|')) {
 							SelectObject(auxdc, barreira);
-							BitBlt(memDC, j * width, i * height, width, height, auxdc, l * 50, k * 50, SRCCOPY);
+							StretchBlt(memDC, j * width, i * height, width, height, auxdc, l * 50, k * 50, 50, 50, SRCCOPY);
 							continue;
 						}
 					}
@@ -553,6 +460,18 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			dados->eu.darkMode = false;
 			InvalidateRect(hWnd, NULL, TRUE);
 		}
+		if (LOWORD(wParam) == ID_INDIVIDUAL) {
+			_tcscpy_s(dados->eu.mensagem, 20, TEXT("REGISTO"));
+			dados->eu.individual = true;
+			dados->eu.ajuda = 0;
+			SetEvent(event);
+		}
+		if (LOWORD(wParam) == ID_COMPETICAO) {
+			_tcscpy_s(dados->eu.mensagem, 20, TEXT("REGISTO"));
+			dados->eu.individual = false;
+			dados->eu.ajuda = 0;
+			SetEvent(event);
+		}
 		break;
 	case WM_LBUTTONDOWN:
 		p.x = GET_X_LPARAM(lParam);
@@ -564,7 +483,6 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		if (rect.col == -1 || rect.lin == -1) {
 			break;
 		}
-		//_stprintf_s(msg, 100, TEXT("%d"), rect);
 
 		for (int i = 0; i < 2; i++) {
 			for (int j = 0; j < 4; j++) {
@@ -588,7 +506,6 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 					}
 				}
 				else if(dados->eu.mapa.board[rect.lin][rect.col] == TEXT('□')) {
-					_tprintf(TEXT("peca: %c\n"), dados->eu.mapa.board[rect.lin][rect.col]);
 					dados->eu.x = rect.lin;
 					dados->eu.y = rect.col;
 					_tcscpy_s(dados->eu.mensagem, 20, TEXT("JOGADA"));
@@ -599,25 +516,10 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 						dados->eu.peca = getRandomPeca();
 					}
 					SetEvent(event);
+					break;
 				}
 			}
 		}
-
-
-		//if (rect.lin > 0) {
-		//	_tprintf(TEXT("%d\n"), rect);
-		//	InvalidateRect(hWnd, NULL, FALSE);
-		//}
-		//dados->eu.x = rect.lin;
-		//dados->eu.y = rect.col;
-		//_tcscpy_s(dados->eu.mensagem, 20, TEXT("JOGADA"));
-		//if (!dados->eu.aleatorio) {
-		//	dados->eu.peca = getProxPeca(pecasText[0][0]);
-		//}
-		//else {
-		//	dados->eu.peca = getRandomPeca();
-		//}
-		//SetEvent(event);
 		break;
 	case WM_RBUTTONDOWN:
 		p.x = GET_X_LPARAM(lParam);
@@ -627,9 +529,8 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 
 		rect = getSquare(dados, p.x, p.y, width, height);
 		
-		if (dados->eu.mapa.board[rect.lin][rect.col] != TEXT('□')) {
+		if (dados->eu.mapa.board[rect.lin][rect.col] != TEXT('□') && dados->eu.agua.board[rect.lin][rect.col] != TEXT('w')) {
 			dados->eu.peca = TEXT('□');
-			//_tprintf(TEXT("\n%c\n"), dados->eu.peca);
 			dados->eu.x = rect.lin;
 			dados->eu.y = rect.col;
 			_tcscpy_s(dados->eu.mensagem, 20, TEXT("APAGAR"));
@@ -647,7 +548,6 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			g_fMouseTracking = TrackMouseEvent(&tme);
 		}
 		if (dados->eu.moveRato) {
-			_tprintf(TEXT("AQUI\n"));
 			_tcscpy_s(dados->eu.mensagem, 20, TEXT("RATO"));
 			dados->eu.moveRato = false;
 			SetEvent(event);
@@ -656,11 +556,16 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		y = HIWORD(lParam);
 		break;
 	case  WM_MOUSEHOVER:
-		x = LOWORD(lParam);
-		y = HIWORD(lParam);
+		p.x = GET_X_LPARAM(lParam);
+		p.y = GET_Y_LPARAM(lParam);
+		width = SQ_SZ / dados->eu.mapa.col;
+		height = SQ_SZ / dados->eu.mapa.lin;
+
+		rect = getSquare(dados, p.x, p.y, width, height);
 		g_fMouseTracking = FALSE;
 		if (dados->eu.ajuda < 3) {
-			if (x > 50 && x < 100) { // TO DO colocar as coordenadas da peça onde está a agua atualmente
+
+			if (rect.lin == dados->eu.aguaAtual.atual_lin && rect.col == dados->eu.aguaAtual.atual_col) { // TO DO colocar as coordenadas da peça onde está a agua atualmente
 				_tcscpy_s(dados->eu.mensagem, 20, TEXT("SUSPENDER"));
 				dados->eu.ajuda++;
 				_tprintf(TEXT("AJUDA N %d\n"), dados->eu.ajuda);
@@ -677,10 +582,6 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		return 0;
 		break;
 	case  WM_MOUSELEAVE:
-		//g_fMouseTracking = FALSE;
-		//_tcscpy_s(dados->eu.mensagem, 20, TEXT("RATO"));
-		//_tcscpy_s(dados->eu.nome, 20, TEXT("PEDRO CORREIA"));
-		//SetEvent(event);
 		return 0;
 		break;
 	default:
