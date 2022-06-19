@@ -14,7 +14,7 @@
 #define Cl_Sz sizeof(Cliente)
 
 
-HANDLE event; //DEBUG RETIRAR DEPOIS
+HANDLE event;
 
 Jogada getSquare(TDados* dados, int x, int y, int width, int height) {
 	for (int i = 0; i < dados->eu.mapa.lin; i++) {
@@ -75,7 +75,6 @@ DWORD WINAPI ThreadClienteReader(LPVOID param) {
 	Cliente FromServer;
 	DWORD cbBytesRead = 0;
 	BOOL fSuccess = FALSE;
-	//Cliente* eu = (Cliente*)param;
 	TDados* dados = (TDados*)param;
 	Cliente* eu = &dados->eu;
 	HANDLE hPipe = eu->hPipe;
@@ -102,9 +101,6 @@ DWORD WINAPI ThreadClienteReader(LPVOID param) {
 		dados->eu.nivel = FromServer.nivel;
 		dados->eu.individual = FromServer.individual;
 		dados->eu.aguaAtual = FromServer.aguaAtual;
-		//dados->eu.hPipe = FromServer.hPipe;
-		//dados->eu = FromServer;// Acho que é muito para assumir tudo como certo, vai dar override de certos valores
-		//InvalidateRect(dados->hWnd, NULL, FALSE);
 		if (FromServer.termina) {
 			if (_tcsicmp(FromServer.mensagem, TEXT("TIMEOUT")) == 0) {
 				MessageBox(dados->hWnd, TEXT("Foi excluído por inatividade|"), TEXT("Fechar"), MB_OK);
@@ -120,7 +116,6 @@ DWORD WINAPI ThreadClienteReader(LPVOID param) {
 		if (_tcsicmp(FromServer.mensagem, TEXT("GANHOU")) == 0) {
 			if (MessageBox(dados->hWnd, TEXT("Ganhou! Continuar a jogar?"), TEXT("Vitória"), MB_YESNO) == IDYES) {
 				_tcscpy_s(dados->eu.mensagem, 20, TEXT("CONTINUAR"));
-				//dados->eu.individual = true;
 				SetEvent(event);
 			}
 		}
@@ -130,7 +125,6 @@ DWORD WINAPI ThreadClienteReader(LPVOID param) {
 		if (_tcsicmp(FromServer.mensagem, TEXT("PERDEU")) == 0) {
 			if (MessageBox(dados->hWnd, TEXT("Perdeu! Jogar de novo?"), TEXT("Derrota"), MB_YESNO) == IDYES) {
 				_tcscpy_s(dados->eu.mensagem, 20, TEXT("REGISTO"));
-				//dados->eu.individual = true;
 				SetEvent(event);
 			}
 		}
@@ -155,7 +149,6 @@ DWORD WINAPI ThreadClienteReader(LPVOID param) {
 		}
 		if (_tcsicmp(FromServer.mensagem, TEXT("ESPERAR")) == 0) {
 			MessageBox(dados->hWnd, TEXT("À espera de adversário"), TEXT("Esperar"), MB_OK);
-			//SetEvent(event);
 		}
 		if (_tcsicmp(FromServer.mensagem, TEXT("TEMPO")) == 0) {
 			dados->eu.tempo = FromServer.tempo;
@@ -171,7 +164,7 @@ DWORD WINAPI ThreadClienteReader(LPVOID param) {
 
 DWORD WINAPI ThreadClienteWritter(LPVOID param) {
 	TDados* dados = (TDados*)param;
-	Cliente* eu = &dados->eu;// (Cliente*)param;
+	Cliente* eu = &dados->eu;
 	BOOL fSuccess = FALSE;
 	DWORD cbWritten;
 	HANDLE WriteReady;
@@ -221,16 +214,16 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	Cliente eu;
 
 
-	/* CRIACAO DE CONSOLA PARA DEBUG */
-	AllocConsole();
-	HANDLE stdHandle;
-	int hConsole;
-	FILE* fp;
-	stdHandle = GetStdHandle(STD_OUTPUT_HANDLE);
-	hConsole = _open_osfhandle((long)stdHandle, _O_TEXT);
-	fp = _fdopen(hConsole, "w");
+	///* CRIACAO DE CONSOLA PARA DEBUG */
+	//AllocConsole();
+	//HANDLE stdHandle;
+	//int hConsole;
+	//FILE* fp;
+	//stdHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+	//hConsole = _open_osfhandle((long)stdHandle, _O_TEXT);
+	//fp = _fdopen(hConsole, "w");
 
-	freopen_s(&fp, "CONOUT$", "w", stdout);
+	//freopen_s(&fp, "CONOUT$", "w", stdout);
 #ifdef UNICODE 
 	if (_setmode(_fileno(stdin), _O_WTEXT) == -1) {
 		perror("Impossivel user _setmode()");
@@ -399,17 +392,12 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 				for (int k = 0; k < 2; k++) {
 					for (int l = 0; l < 4; l++) {
 						SelectObject(auxdc, pecas);
-						if (dados->eu.mapa.board[i][j] == pecasText[k][l]) {
-							/*BitBlt(memDC, j * SQ_SZ, i * SQ_SZ, j * SQ_SZ + SQ_SZ, i * SQ_SZ + SQ_SZ, auxdc, l * 50, k * 50, SRCCOPY);*/
-							
+						if (dados->eu.mapa.board[i][j] == pecasText[k][l]) {				
 							if (dados->eu.agua.board[i][j] == TEXT('w')) {
 								SelectObject(auxdc, pecasAgua);
-								//BitBlt(memDC, j * SQ_SZ, i * SQ_SZ, j * SQ_SZ + SQ_SZ, i * SQ_SZ + SQ_SZ, auxdc, l * 50, k * 50, SRCCOPY);
-								//BitBlt(memDC, j * width, i * height, width, height, auxdc, l * 50, k * 50, SRCCOPY);
 								StretchBlt(memDC, j * width, i * height, width, height, auxdc, l * 50, k * 50, 50, 50, SRCCOPY);
 								continue;
 							}
-							//BitBlt(memDC, j * width, i * height, width, height, auxdc, l * 50, k * 50, SRCCOPY);
 							StretchBlt(memDC, j * width, i * height, width, height, auxdc, l * 50, k * 50, 50, 50, SRCCOPY);
 							continue;
 						}
@@ -441,8 +429,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		DeleteDC(memDC);
 		EndPaint(hWnd, &ps);
 		break;
-	case WM_DESTROY:	// Destruir a janela e terminar o programa 
-						// "PostQuitMessage(Exit Status)"		
+	case WM_DESTROY:		
 		dados->eu.termina = true;
 		SetEvent(event);
 		PostQuitMessage(0);
@@ -472,6 +459,13 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			dados->eu.ajuda = 0;
 			SetEvent(event);
 		}
+		if (LOWORD(wParam) == ID_SOBRE_AUTORES) {
+			MessageBox(NULL, TEXT("Sistemas Operativos 2 - ISEC 2021/2022\nInês Marques - 2016019068\nAndré Amorim - 2016015670"), TEXT("Sobre os autores"), MB_OK);
+		}
+		if (LOWORD(wParam) == ID_SOBRE_REGRAS) {
+			MessageBox(NULL, TEXT("Para começar um novo jogo:\n\tNovo Jogo -> Selecionar o modo.\nSe a água chegar a uma peça sem mais de seguida, perde o jogo.\nGanha o jogo quem conseguir chegar primeiro à peça final, ou não perder."),
+				TEXT("Regras do jogo"), MB_OK);
+		}
 		break;
 	case WM_LBUTTONDOWN:
 		p.x = GET_X_LPARAM(lParam);
@@ -494,7 +488,6 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 						else {
 							dados->eu.peca = getRandomPeca();
 						}
-						//_tprintf(TEXT("\n%c\n"), dados->eu.peca);
 						dados->eu.x = rect.lin;
 						dados->eu.y = rect.col;
 						_tcscpy_s(dados->eu.mensagem, 20, TEXT("MUDAR"));
@@ -585,10 +578,8 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		return 0;
 		break;
 	default:
-		// Neste exemplo, para qualquer outra mensagem (p.e. "minimizar","maximizar","restaurar")
-		// não é efectuado nenhum processamento, apenas se segue o "default" do Windows
 		return(DefWindowProc(hWnd, messg, wParam, lParam));
-		break;  // break tecnicamente desnecessário por causa do return
+		break;
 	}
 	return(0);
 }

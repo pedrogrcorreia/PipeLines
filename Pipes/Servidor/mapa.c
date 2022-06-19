@@ -21,8 +21,6 @@ Mapa criaMapa(Mapa mapa) {
 	mapa.board[ini][0] = TEXT('i');
 
 	/* Ultima coluna e Linha random */
-
-	/* TODO DIAGONALMENTE OPOSTOS */
 	mapa.board[fin][mapa.col - 1] = TEXT('f');
 
 	return mapa;
@@ -64,7 +62,7 @@ void printMapa(Mapa mapa) {
 Agua moverAguaDebug(Agua agua, int lin, int col) {
 	// Coloca água na peça
 	//agua.mapa.board[lin][col] = 'w';
-	_tprintf(TEXT("%d %d\n"), lin, col);
+	//_tprintf(TEXT("%d %d\n"), lin, col);
 
 	//Peça f - acaba o jogo
 	if (agua.mapa.board[lin][col] == TEXT('f')) {
@@ -130,7 +128,7 @@ Agua moverAguaDebug(Agua agua, int lin, int col) {
 
 
 Agua moverAgua(Agua agua, int lin, int col) {
-	_tprintf(TEXT("%d %d\n"), lin, col);
+	//_tprintf(TEXT("%d %d\n"), lin, col);
 	agua.atual_lin = lin;
 	agua.atual_col = col;
 	//Peça f - acaba o jogo

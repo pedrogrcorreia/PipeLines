@@ -10,7 +10,6 @@
 
 void iniciaClientes(TDados* dados);
 
-//int writeClienteASINC(HANDLE hPipe, Cliente c);
 
 int adicionaCliente(TDados* dados, HANDLE hPipe);
 

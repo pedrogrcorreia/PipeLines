@@ -76,8 +76,6 @@ typedef struct {
 
 // Estrutura para colocar na memória partilhada
 typedef struct {
-	//Mapa mapas[2];
-	//Mapa agua;
 	Cliente clientes[MAX_CLI];
 	bool terminar;
 	int lin;
@@ -110,6 +108,5 @@ typedef struct {
 	int col;
 	Jogo jogo;
 	Competicao comp;
-	//Cliente clientes[MAX_CLI];
 } TDados;
 

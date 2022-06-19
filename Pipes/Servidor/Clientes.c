@@ -13,20 +13,6 @@ void iniciaClientes(TDados* dados) {
 	}
 }
 
-//int writeClienteASINC(HANDLE hPipe, Cliente c) {
-//	DWORD cbWritten = 0;
-//	BOOL fSuccess = FALSE;
-//
-//	OVERLAPPED OverlWr = { 0 };
-//
-//	ZeroMemory(&OverlWr, sizeof(OverlWr));
-//
-//	fSuccess = WriteFile(hPipe, &c, Cl_Sz, &cbWritten, &OverlWr);
-//	WaitForSingleObject(WriteReady, INFINITE);
-//	GetOverlappedResult(hPipe, &OverlWr, &cbWritten, FALSE);
-//	return 1;
-//}
-
 int adicionaCliente(TDados* dados, HANDLE hPipe) {
 	for (int i = 0; i < MAX_CLI; i++) {
 		if (dados->ptr_memoria->clientes[i].hPipe == NULL) {
