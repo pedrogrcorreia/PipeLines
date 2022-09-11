@@ -29,3 +29,9 @@ This settings can be retrieved after they are saved.
 
 ### Required
 - Microsoft Visual C++ version 5.0
+
+## Known issues
+- This project was done under a delivery time limit, there are known bugs that couldn't be fixed before the delivery.<br>
+- There is also some sketchy code that needs to be cleaned and refactored.<br>
+These issues will be fixed over time.
+
